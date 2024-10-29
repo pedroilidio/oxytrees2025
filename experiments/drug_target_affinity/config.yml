@@ -1,0 +1,221 @@
+defaults:
+  aliases:
+    dataset:
+      X:
+        force_download: false
+        read:
+          params: {}
+      y:
+        force_download: false
+        read:
+          params: {}
+    estimator:
+      params: {}
+  runs:
+    directory: drug_target_affinity/runs
+    active: false
+    cv:
+      call: bipartite_learn.model_selection.multipartite_cross_validate
+      params:
+        return_estimator: false
+        return_train_score: false
+        scoring: !!python/object/apply:drug_target_affinity.estimators.get_scorers {}
+        # - explained_variance
+        # - max_error
+        # - neg_mean_absolute_error
+        # - neg_mean_squared_error
+        # - neg_root_mean_squared_error
+        # - neg_mean_squared_log_error
+        # - neg_median_absolute_error
+        # - r2
+        n_jobs: 1
+        cv: 4
+        diagonal: false
+        verbose: 10
+        pairwise: true
+        random_state: 0
+        shuffle: true
+
+
+aliases:
+  dataset:
+  - name: davis_raw
+    pairwise: false
+    X:
+      - path: datasets/davis/SMILES.csv
+        read:
+          call: numpy.loadtxt
+          params: {dtype: str}
+      - path: datasets/davis/target_seq.csv
+        read:
+          call: numpy.loadtxt
+          params: {dtype: str}
+    y:
+      path: datasets/davis/log_affinity.txt
+      read:
+        call: numpy.loadtxt
+
+  - name: kiba_raw
+    pairwise: false
+    X:
+      - path: datasets/kiba/final/smiles.tsv
+        read:
+          call: data_loading.read_table_to_array
+      - path: datasets/kiba/final/target_sequences.tsv
+        read:
+          call: data_loading.read_table_to_array
+    y:
+      path: datasets/kiba/final/affinity.tsv
+      read:
+        call: drug_target_affinity.estimators.load_kiba_affinities_for_deepdta
+        params:
+          max_value: 20
+          fill_nan: false
+
+  - name: davis
+    pairwise: true
+    X:
+      - path: datasets/davis/binary/X1.txt
+        read:
+          call: data_loading.numpy_load_and_symmetrize
+      - path: datasets/davis/binary/X2.txt
+        read:
+          call: data_loading.numpy_load_and_symmetrize
+    y:
+      path: datasets/davis/log_affinity.txt
+      read:
+        call: numpy.loadtxt
+
+  - name: kiba
+    pairwise: true
+    X:
+      - path: datasets/kiba/final/ligand_similarity.tsv
+        read:
+          call: data_loading.read_table_to_array
+      - path: datasets/kiba/final/normalized_target_similarity.tsv
+        read:
+          call: data_loading.read_table_to_array
+    y:
+      path: datasets/kiba/final/affinity.tsv
+      read:
+        call: drug_target_affinity.estimators.load_kiba_affinities_for_deepdta
+        params:
+          max_value: 20
+          fill_nan: true
+
+
+  estimator:
+  - name: deep_dta
+    call: drug_target_affinity.estimators.deep_dta
+  - name: moltrans
+    call: drug_target_affinity.estimators.moltrans
+  - name: bxt_gso
+    call: drug_target_affinity.estimators.bxt_gso
+  - name: bxt_gmosa
+    call: drug_target_affinity.estimators.bxt_gmosa
+  - name: brf_gso
+    call: drug_target_affinity.estimators.brf_gso
+  - name: brf_gmosa
+    call: drug_target_affinity.estimators.brf_gmosa
+  - name: bgbm
+    call: drug_target_affinity.estimators.bgbm
+  - name: kron_rls
+    call: literature_models.kron_rls.KronRLSRegressor
+
+  wrapper:
+  # Drops the given fraction of positive labels from the training set prior to
+  # fitting the estimator. Used to investigate the effect of missing labels in
+  # PU learning.
+  - name: drop90
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.9
+      random_state: 0
+
+  - name: drop80
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.8
+      random_state: 0
+
+  - name: drop70
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.7
+      random_state: 0
+
+  - name: drop60
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.6
+      random_state: 0
+
+  - name: drop50
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.5
+      random_state: 0
+
+  - name: drop40
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.4
+      random_state: 0
+
+  - name: drop30
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.3
+      random_state: 0
+
+  - name: drop20
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.2
+      random_state: 0
+
+  - name: drop10
+    call: bipartite_positive_dropper.wrap_estimator
+    params:
+      drop: 0.1
+      random_state: 0
+
+
+runs:
+  - dataset:
+    - kiba_raw
+    estimator:
+    - moltrans
+    cv:
+      params:
+        n_jobs: 4
+        pairwise: false
+    active: false
+
+  - dataset:
+    - davis_raw
+    - kiba_raw
+    estimator:
+    - deep_dta
+    - moltrans
+    cv:
+      params:
+        pairwise: false
+    active: false
+
+  - dataset:
+    - kiba
+    - davis
+    estimator:
+    - kron_rls
+    # - bxt_gso
+    # - bxt_gmosa
+    # - brf_gso
+    # - brf_gmosa
+    # - bgbm
+    cv:
+      params:
+        n_jobs: 8
+        pairwise: true
+        return_estimator: false
+    active: true

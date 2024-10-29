@@ -1,0 +1,2117 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 16
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    - matthews_corrcoef
+    - balanced_accuracy
+    - f1_macro
+    - f1_micro
+    - f1_weighted
+    - precision_macro
+    - precision_micro
+    - precision_weighted
+    - recall_macro
+    - recall_micro
+    - recall_weighted
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/miRNA/final/normalized_mirna_similarity.tsv
+    read:
+      call: utils.read_table_to_array
+      params: {}
+    url: null
+  - force_download: false
+    path: datasets/miRNA/final/normalized_target_similarity.tsv
+    read:
+      call: utils.read_table_to_array
+      params: {}
+    url: null
+  name: mirna
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/miRNA/final/interaction_matrix.tsv
+    read:
+      call: utils.read_table_to_array
+      params: {}
+    url: null
+directory: runs
+end: 2023-08-11 08:52:03.819148
+estimator:
+  call: y_reconstruction.estimators.blmnii_rls
+  final_params:
+    memory: null
+    steps:
+    - - dropper
+      - call: bipartite_positive_dropper.PositiveDropper
+        params:
+          drop: 0.3
+          random_state: 0
+    - - estimator
+      - call: y_reconstruction.estimators.RegressorToBinaryClassifier
+        params:
+          estimator:
+            call: bipartite_learn.model_selection._search.MultipartiteGridSearchCV
+            params:
+              cv:
+                call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+                params: {}
+              diagonal: false
+              error_score: .nan
+              estimator:
+                call: imblearn.pipeline.Pipeline
+                params:
+                  localmultioutputwrapper:
+                    call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+                    params:
+                      combine_func_kwargs: null
+                      combine_predictions_func:
+                        load: numpy.mean
+                      independent_labels: false
+                      primary_cols_estimator:
+                        call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                        params:
+                          metric: precomputed
+                          metric_params: null
+                          n_jobs: null
+                          p: 2
+                          weights: similarity
+                      primary_cols_estimator__metric: precomputed
+                      primary_cols_estimator__metric_params: null
+                      primary_cols_estimator__n_jobs: null
+                      primary_cols_estimator__p: 2
+                      primary_cols_estimator__weights: similarity
+                      primary_rows_estimator:
+                        call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                        params:
+                          metric: precomputed
+                          metric_params: null
+                          n_jobs: null
+                          p: 2
+                          weights: similarity
+                      primary_rows_estimator__metric: precomputed
+                      primary_rows_estimator__metric_params: null
+                      primary_rows_estimator__n_jobs: null
+                      primary_rows_estimator__p: 2
+                      primary_rows_estimator__weights: similarity
+                      secondary_cols_estimator:
+                        call: sklearn.kernel_ridge.KernelRidge
+                        params:
+                          alpha: 1
+                          coef0: 1
+                          degree: 3
+                          gamma: null
+                          kernel: precomputed
+                          kernel_params: null
+                      secondary_cols_estimator__alpha: 1
+                      secondary_cols_estimator__coef0: 1
+                      secondary_cols_estimator__degree: 3
+                      secondary_cols_estimator__gamma: null
+                      secondary_cols_estimator__kernel: precomputed
+                      secondary_cols_estimator__kernel_params: null
+                      secondary_rows_estimator:
+                        call: sklearn.kernel_ridge.KernelRidge
+                        params:
+                          alpha: 1
+                          coef0: 1
+                          degree: 3
+                          gamma: null
+                          kernel: precomputed
+                          kernel_params: null
+                      secondary_rows_estimator__alpha: 1
+                      secondary_rows_estimator__coef0: 1
+                      secondary_rows_estimator__degree: 3
+                      secondary_rows_estimator__gamma: null
+                      secondary_rows_estimator__kernel: precomputed
+                      secondary_rows_estimator__kernel_params: null
+                  localmultioutputwrapper__combine_func_kwargs: null
+                  localmultioutputwrapper__combine_predictions_func:
+                    load: numpy.mean
+                  localmultioutputwrapper__independent_labels: false
+                  localmultioutputwrapper__primary_cols_estimator:
+                    call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                    params:
+                      metric: precomputed
+                      metric_params: null
+                      n_jobs: null
+                      p: 2
+                      weights: similarity
+                  localmultioutputwrapper__primary_cols_estimator__metric: precomputed
+                  localmultioutputwrapper__primary_cols_estimator__metric_params: null
+                  localmultioutputwrapper__primary_cols_estimator__n_jobs: null
+                  localmultioutputwrapper__primary_cols_estimator__p: 2
+                  localmultioutputwrapper__primary_cols_estimator__weights: similarity
+                  localmultioutputwrapper__primary_rows_estimator:
+                    call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                    params:
+                      metric: precomputed
+                      metric_params: null
+                      n_jobs: null
+                      p: 2
+                      weights: similarity
+                  localmultioutputwrapper__primary_rows_estimator__metric: precomputed
+                  localmultioutputwrapper__primary_rows_estimator__metric_params: null
+                  localmultioutputwrapper__primary_rows_estimator__n_jobs: null
+                  localmultioutputwrapper__primary_rows_estimator__p: 2
+                  localmultioutputwrapper__primary_rows_estimator__weights: similarity
+                  localmultioutputwrapper__secondary_cols_estimator:
+                    call: sklearn.kernel_ridge.KernelRidge
+                    params:
+                      alpha: 1
+                      coef0: 1
+                      degree: 3
+                      gamma: null
+                      kernel: precomputed
+                      kernel_params: null
+                  localmultioutputwrapper__secondary_cols_estimator__alpha: 1
+                  localmultioutputwrapper__secondary_cols_estimator__coef0: 1
+                  localmultioutputwrapper__secondary_cols_estimator__degree: 3
+                  localmultioutputwrapper__secondary_cols_estimator__gamma: null
+                  localmultioutputwrapper__secondary_cols_estimator__kernel: precomputed
+                  localmultioutputwrapper__secondary_cols_estimator__kernel_params: null
+                  localmultioutputwrapper__secondary_rows_estimator:
+                    call: sklearn.kernel_ridge.KernelRidge
+                    params:
+                      alpha: 1
+                      coef0: 1
+                      degree: 3
+                      gamma: null
+                      kernel: precomputed
+                      kernel_params: null
+                  localmultioutputwrapper__secondary_rows_estimator__alpha: 1
+                  localmultioutputwrapper__secondary_rows_estimator__coef0: 1
+                  localmultioutputwrapper__secondary_rows_estimator__degree: 3
+                  localmultioutputwrapper__secondary_rows_estimator__gamma: null
+                  localmultioutputwrapper__secondary_rows_estimator__kernel: precomputed
+                  localmultioutputwrapper__secondary_rows_estimator__kernel_params: null
+                  memory: null
+                  steps:
+                  - - symmetryenforcer
+                    - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                      params:
+                        ndim: 2
+                        samplers:
+                          call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                          params:
+                            sampling_strategy: auto
+                        samplers__sampling_strategy: auto
+                  - - targetkernellinearcombiner
+                    - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                      params:
+                        ndim: 2
+                        samplers:
+                          call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                          params:
+                            alpha: 0.5
+                            filter_params: false
+                            gamma: 1.0
+                            gamma_scale: squares
+                            metric: rbf
+                            n_jobs: null
+                        samplers__alpha: 0.5
+                        samplers__filter_params: false
+                        samplers__gamma: 1.0
+                        samplers__gamma_scale: squares
+                        samplers__metric: rbf
+                        samplers__n_jobs: null
+                  - - localmultioutputwrapper
+                    - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+                      params:
+                        combine_func_kwargs: null
+                        combine_predictions_func:
+                          load: numpy.mean
+                        independent_labels: false
+                        primary_cols_estimator:
+                          call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                          params:
+                            metric: precomputed
+                            metric_params: null
+                            n_jobs: null
+                            p: 2
+                            weights: similarity
+                        primary_cols_estimator__metric: precomputed
+                        primary_cols_estimator__metric_params: null
+                        primary_cols_estimator__n_jobs: null
+                        primary_cols_estimator__p: 2
+                        primary_cols_estimator__weights: similarity
+                        primary_rows_estimator:
+                          call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                          params:
+                            metric: precomputed
+                            metric_params: null
+                            n_jobs: null
+                            p: 2
+                            weights: similarity
+                        primary_rows_estimator__metric: precomputed
+                        primary_rows_estimator__metric_params: null
+                        primary_rows_estimator__n_jobs: null
+                        primary_rows_estimator__p: 2
+                        primary_rows_estimator__weights: similarity
+                        secondary_cols_estimator:
+                          call: sklearn.kernel_ridge.KernelRidge
+                          params:
+                            alpha: 1
+                            coef0: 1
+                            degree: 3
+                            gamma: null
+                            kernel: precomputed
+                            kernel_params: null
+                        secondary_cols_estimator__alpha: 1
+                        secondary_cols_estimator__coef0: 1
+                        secondary_cols_estimator__degree: 3
+                        secondary_cols_estimator__gamma: null
+                        secondary_cols_estimator__kernel: precomputed
+                        secondary_cols_estimator__kernel_params: null
+                        secondary_rows_estimator:
+                          call: sklearn.kernel_ridge.KernelRidge
+                          params:
+                            alpha: 1
+                            coef0: 1
+                            degree: 3
+                            gamma: null
+                            kernel: precomputed
+                            kernel_params: null
+                        secondary_rows_estimator__alpha: 1
+                        secondary_rows_estimator__coef0: 1
+                        secondary_rows_estimator__degree: 3
+                        secondary_rows_estimator__gamma: null
+                        secondary_rows_estimator__kernel: precomputed
+                        secondary_rows_estimator__kernel_params: null
+                  symmetryenforcer:
+                    call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                    params:
+                      ndim: 2
+                      samplers:
+                        call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                        params:
+                          sampling_strategy: auto
+                      samplers__sampling_strategy: auto
+                  symmetryenforcer__ndim: 2
+                  symmetryenforcer__samplers:
+                    call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                    params:
+                      sampling_strategy: auto
+                  symmetryenforcer__samplers__sampling_strategy: auto
+                  targetkernellinearcombiner:
+                    call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                    params:
+                      ndim: 2
+                      samplers:
+                        call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                        params:
+                          alpha: 0.5
+                          filter_params: false
+                          gamma: 1.0
+                          gamma_scale: squares
+                          metric: rbf
+                          n_jobs: null
+                      samplers__alpha: 0.5
+                      samplers__filter_params: false
+                      samplers__gamma: 1.0
+                      samplers__gamma_scale: squares
+                      samplers__metric: rbf
+                      samplers__n_jobs: null
+                  targetkernellinearcombiner__ndim: 2
+                  targetkernellinearcombiner__samplers:
+                    call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                    params:
+                      alpha: 0.5
+                      filter_params: false
+                      gamma: 1.0
+                      gamma_scale: squares
+                      metric: rbf
+                      n_jobs: null
+                  targetkernellinearcombiner__samplers__alpha: 0.5
+                  targetkernellinearcombiner__samplers__filter_params: false
+                  targetkernellinearcombiner__samplers__gamma: 1.0
+                  targetkernellinearcombiner__samplers__gamma_scale: squares
+                  targetkernellinearcombiner__samplers__metric: rbf
+                  targetkernellinearcombiner__samplers__n_jobs: null
+                  verbose: false
+              estimator__localmultioutputwrapper:
+                call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+                params:
+                  combine_func_kwargs: null
+                  combine_predictions_func:
+                    load: numpy.mean
+                  independent_labels: false
+                  primary_cols_estimator:
+                    call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                    params:
+                      metric: precomputed
+                      metric_params: null
+                      n_jobs: null
+                      p: 2
+                      weights: similarity
+                  primary_cols_estimator__metric: precomputed
+                  primary_cols_estimator__metric_params: null
+                  primary_cols_estimator__n_jobs: null
+                  primary_cols_estimator__p: 2
+                  primary_cols_estimator__weights: similarity
+                  primary_rows_estimator:
+                    call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                    params:
+                      metric: precomputed
+                      metric_params: null
+                      n_jobs: null
+                      p: 2
+                      weights: similarity
+                  primary_rows_estimator__metric: precomputed
+                  primary_rows_estimator__metric_params: null
+                  primary_rows_estimator__n_jobs: null
+                  primary_rows_estimator__p: 2
+                  primary_rows_estimator__weights: similarity
+                  secondary_cols_estimator:
+                    call: sklearn.kernel_ridge.KernelRidge
+                    params:
+                      alpha: 1
+                      coef0: 1
+                      degree: 3
+                      gamma: null
+                      kernel: precomputed
+                      kernel_params: null
+                  secondary_cols_estimator__alpha: 1
+                  secondary_cols_estimator__coef0: 1
+                  secondary_cols_estimator__degree: 3
+                  secondary_cols_estimator__gamma: null
+                  secondary_cols_estimator__kernel: precomputed
+                  secondary_cols_estimator__kernel_params: null
+                  secondary_rows_estimator:
+                    call: sklearn.kernel_ridge.KernelRidge
+                    params:
+                      alpha: 1
+                      coef0: 1
+                      degree: 3
+                      gamma: null
+                      kernel: precomputed
+                      kernel_params: null
+                  secondary_rows_estimator__alpha: 1
+                  secondary_rows_estimator__coef0: 1
+                  secondary_rows_estimator__degree: 3
+                  secondary_rows_estimator__gamma: null
+                  secondary_rows_estimator__kernel: precomputed
+                  secondary_rows_estimator__kernel_params: null
+              estimator__localmultioutputwrapper__combine_func_kwargs: null
+              estimator__localmultioutputwrapper__combine_predictions_func:
+                load: numpy.mean
+              estimator__localmultioutputwrapper__independent_labels: false
+              estimator__localmultioutputwrapper__primary_cols_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              estimator__localmultioutputwrapper__primary_cols_estimator__metric: precomputed
+              estimator__localmultioutputwrapper__primary_cols_estimator__metric_params: null
+              estimator__localmultioutputwrapper__primary_cols_estimator__n_jobs: null
+              estimator__localmultioutputwrapper__primary_cols_estimator__p: 2
+              estimator__localmultioutputwrapper__primary_cols_estimator__weights: similarity
+              estimator__localmultioutputwrapper__primary_rows_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              estimator__localmultioutputwrapper__primary_rows_estimator__metric: precomputed
+              estimator__localmultioutputwrapper__primary_rows_estimator__metric_params: null
+              estimator__localmultioutputwrapper__primary_rows_estimator__n_jobs: null
+              estimator__localmultioutputwrapper__primary_rows_estimator__p: 2
+              estimator__localmultioutputwrapper__primary_rows_estimator__weights: similarity
+              estimator__localmultioutputwrapper__secondary_cols_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              estimator__localmultioutputwrapper__secondary_cols_estimator__alpha: 1
+              estimator__localmultioutputwrapper__secondary_cols_estimator__coef0: 1
+              estimator__localmultioutputwrapper__secondary_cols_estimator__degree: 3
+              estimator__localmultioutputwrapper__secondary_cols_estimator__gamma: null
+              estimator__localmultioutputwrapper__secondary_cols_estimator__kernel: precomputed
+              estimator__localmultioutputwrapper__secondary_cols_estimator__kernel_params: null
+              estimator__localmultioutputwrapper__secondary_rows_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              estimator__localmultioutputwrapper__secondary_rows_estimator__alpha: 1
+              estimator__localmultioutputwrapper__secondary_rows_estimator__coef0: 1
+              estimator__localmultioutputwrapper__secondary_rows_estimator__degree: 3
+              estimator__localmultioutputwrapper__secondary_rows_estimator__gamma: null
+              estimator__localmultioutputwrapper__secondary_rows_estimator__kernel: precomputed
+              estimator__localmultioutputwrapper__secondary_rows_estimator__kernel_params: null
+              estimator__memory: null
+              estimator__steps:
+              - - symmetryenforcer
+                - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                  params:
+                    ndim: 2
+                    samplers:
+                      call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                      params:
+                        sampling_strategy: auto
+                    samplers__sampling_strategy: auto
+              - - targetkernellinearcombiner
+                - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                  params:
+                    ndim: 2
+                    samplers:
+                      call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                      params:
+                        alpha: 0.5
+                        filter_params: false
+                        gamma: 1.0
+                        gamma_scale: squares
+                        metric: rbf
+                        n_jobs: null
+                    samplers__alpha: 0.5
+                    samplers__filter_params: false
+                    samplers__gamma: 1.0
+                    samplers__gamma_scale: squares
+                    samplers__metric: rbf
+                    samplers__n_jobs: null
+              - - localmultioutputwrapper
+                - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+                  params:
+                    combine_func_kwargs: null
+                    combine_predictions_func:
+                      load: numpy.mean
+                    independent_labels: false
+                    primary_cols_estimator:
+                      call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                      params:
+                        metric: precomputed
+                        metric_params: null
+                        n_jobs: null
+                        p: 2
+                        weights: similarity
+                    primary_cols_estimator__metric: precomputed
+                    primary_cols_estimator__metric_params: null
+                    primary_cols_estimator__n_jobs: null
+                    primary_cols_estimator__p: 2
+                    primary_cols_estimator__weights: similarity
+                    primary_rows_estimator:
+                      call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                      params:
+                        metric: precomputed
+                        metric_params: null
+                        n_jobs: null
+                        p: 2
+                        weights: similarity
+                    primary_rows_estimator__metric: precomputed
+                    primary_rows_estimator__metric_params: null
+                    primary_rows_estimator__n_jobs: null
+                    primary_rows_estimator__p: 2
+                    primary_rows_estimator__weights: similarity
+                    secondary_cols_estimator:
+                      call: sklearn.kernel_ridge.KernelRidge
+                      params:
+                        alpha: 1
+                        coef0: 1
+                        degree: 3
+                        gamma: null
+                        kernel: precomputed
+                        kernel_params: null
+                    secondary_cols_estimator__alpha: 1
+                    secondary_cols_estimator__coef0: 1
+                    secondary_cols_estimator__degree: 3
+                    secondary_cols_estimator__gamma: null
+                    secondary_cols_estimator__kernel: precomputed
+                    secondary_cols_estimator__kernel_params: null
+                    secondary_rows_estimator:
+                      call: sklearn.kernel_ridge.KernelRidge
+                      params:
+                        alpha: 1
+                        coef0: 1
+                        degree: 3
+                        gamma: null
+                        kernel: precomputed
+                        kernel_params: null
+                    secondary_rows_estimator__alpha: 1
+                    secondary_rows_estimator__coef0: 1
+                    secondary_rows_estimator__degree: 3
+                    secondary_rows_estimator__gamma: null
+                    secondary_rows_estimator__kernel: precomputed
+                    secondary_rows_estimator__kernel_params: null
+              estimator__symmetryenforcer:
+                call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                params:
+                  ndim: 2
+                  samplers:
+                    call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                    params:
+                      sampling_strategy: auto
+                  samplers__sampling_strategy: auto
+              estimator__symmetryenforcer__ndim: 2
+              estimator__symmetryenforcer__samplers:
+                call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                params:
+                  sampling_strategy: auto
+              estimator__symmetryenforcer__samplers__sampling_strategy: auto
+              estimator__targetkernellinearcombiner:
+                call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                params:
+                  ndim: 2
+                  samplers:
+                    call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                    params:
+                      alpha: 0.5
+                      filter_params: false
+                      gamma: 1.0
+                      gamma_scale: squares
+                      metric: rbf
+                      n_jobs: null
+                  samplers__alpha: 0.5
+                  samplers__filter_params: false
+                  samplers__gamma: 1.0
+                  samplers__gamma_scale: squares
+                  samplers__metric: rbf
+                  samplers__n_jobs: null
+              estimator__targetkernellinearcombiner__ndim: 2
+              estimator__targetkernellinearcombiner__samplers:
+                call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                params:
+                  alpha: 0.5
+                  filter_params: false
+                  gamma: 1.0
+                  gamma_scale: squares
+                  metric: rbf
+                  n_jobs: null
+              estimator__targetkernellinearcombiner__samplers__alpha: 0.5
+              estimator__targetkernellinearcombiner__samplers__filter_params: false
+              estimator__targetkernellinearcombiner__samplers__gamma: 1.0
+              estimator__targetkernellinearcombiner__samplers__gamma_scale: squares
+              estimator__targetkernellinearcombiner__samplers__metric: rbf
+              estimator__targetkernellinearcombiner__samplers__n_jobs: null
+              estimator__verbose: false
+              n_jobs: 3
+              pairwise: true
+              param_grid:
+                targetkernellinearcombiner__samplers__alpha:
+                - 0.0
+                - 0.1
+                - 0.25
+                - 0.5
+                - 0.75
+                - 0.9
+                - 1.0
+              pre_dispatch: 2*n_jobs
+              refit: true
+              return_train_score: false
+              scoring: neg_mean_squared_error
+              train_test_combinations: null
+              verbose: 0
+          estimator__cv:
+            call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+            params: {}
+          estimator__diagonal: false
+          estimator__error_score: .nan
+          estimator__estimator:
+            call: imblearn.pipeline.Pipeline
+            params:
+              localmultioutputwrapper:
+                call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+                params:
+                  combine_func_kwargs: null
+                  combine_predictions_func:
+                    load: numpy.mean
+                  independent_labels: false
+                  primary_cols_estimator:
+                    call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                    params:
+                      metric: precomputed
+                      metric_params: null
+                      n_jobs: null
+                      p: 2
+                      weights: similarity
+                  primary_cols_estimator__metric: precomputed
+                  primary_cols_estimator__metric_params: null
+                  primary_cols_estimator__n_jobs: null
+                  primary_cols_estimator__p: 2
+                  primary_cols_estimator__weights: similarity
+                  primary_rows_estimator:
+                    call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                    params:
+                      metric: precomputed
+                      metric_params: null
+                      n_jobs: null
+                      p: 2
+                      weights: similarity
+                  primary_rows_estimator__metric: precomputed
+                  primary_rows_estimator__metric_params: null
+                  primary_rows_estimator__n_jobs: null
+                  primary_rows_estimator__p: 2
+                  primary_rows_estimator__weights: similarity
+                  secondary_cols_estimator:
+                    call: sklearn.kernel_ridge.KernelRidge
+                    params:
+                      alpha: 1
+                      coef0: 1
+                      degree: 3
+                      gamma: null
+                      kernel: precomputed
+                      kernel_params: null
+                  secondary_cols_estimator__alpha: 1
+                  secondary_cols_estimator__coef0: 1
+                  secondary_cols_estimator__degree: 3
+                  secondary_cols_estimator__gamma: null
+                  secondary_cols_estimator__kernel: precomputed
+                  secondary_cols_estimator__kernel_params: null
+                  secondary_rows_estimator:
+                    call: sklearn.kernel_ridge.KernelRidge
+                    params:
+                      alpha: 1
+                      coef0: 1
+                      degree: 3
+                      gamma: null
+                      kernel: precomputed
+                      kernel_params: null
+                  secondary_rows_estimator__alpha: 1
+                  secondary_rows_estimator__coef0: 1
+                  secondary_rows_estimator__degree: 3
+                  secondary_rows_estimator__gamma: null
+                  secondary_rows_estimator__kernel: precomputed
+                  secondary_rows_estimator__kernel_params: null
+              localmultioutputwrapper__combine_func_kwargs: null
+              localmultioutputwrapper__combine_predictions_func:
+                load: numpy.mean
+              localmultioutputwrapper__independent_labels: false
+              localmultioutputwrapper__primary_cols_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              localmultioutputwrapper__primary_cols_estimator__metric: precomputed
+              localmultioutputwrapper__primary_cols_estimator__metric_params: null
+              localmultioutputwrapper__primary_cols_estimator__n_jobs: null
+              localmultioutputwrapper__primary_cols_estimator__p: 2
+              localmultioutputwrapper__primary_cols_estimator__weights: similarity
+              localmultioutputwrapper__primary_rows_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              localmultioutputwrapper__primary_rows_estimator__metric: precomputed
+              localmultioutputwrapper__primary_rows_estimator__metric_params: null
+              localmultioutputwrapper__primary_rows_estimator__n_jobs: null
+              localmultioutputwrapper__primary_rows_estimator__p: 2
+              localmultioutputwrapper__primary_rows_estimator__weights: similarity
+              localmultioutputwrapper__secondary_cols_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              localmultioutputwrapper__secondary_cols_estimator__alpha: 1
+              localmultioutputwrapper__secondary_cols_estimator__coef0: 1
+              localmultioutputwrapper__secondary_cols_estimator__degree: 3
+              localmultioutputwrapper__secondary_cols_estimator__gamma: null
+              localmultioutputwrapper__secondary_cols_estimator__kernel: precomputed
+              localmultioutputwrapper__secondary_cols_estimator__kernel_params: null
+              localmultioutputwrapper__secondary_rows_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              localmultioutputwrapper__secondary_rows_estimator__alpha: 1
+              localmultioutputwrapper__secondary_rows_estimator__coef0: 1
+              localmultioutputwrapper__secondary_rows_estimator__degree: 3
+              localmultioutputwrapper__secondary_rows_estimator__gamma: null
+              localmultioutputwrapper__secondary_rows_estimator__kernel: precomputed
+              localmultioutputwrapper__secondary_rows_estimator__kernel_params: null
+              memory: null
+              steps:
+              - - symmetryenforcer
+                - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                  params:
+                    ndim: 2
+                    samplers:
+                      call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                      params:
+                        sampling_strategy: auto
+                    samplers__sampling_strategy: auto
+              - - targetkernellinearcombiner
+                - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                  params:
+                    ndim: 2
+                    samplers:
+                      call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                      params:
+                        alpha: 0.5
+                        filter_params: false
+                        gamma: 1.0
+                        gamma_scale: squares
+                        metric: rbf
+                        n_jobs: null
+                    samplers__alpha: 0.5
+                    samplers__filter_params: false
+                    samplers__gamma: 1.0
+                    samplers__gamma_scale: squares
+                    samplers__metric: rbf
+                    samplers__n_jobs: null
+              - - localmultioutputwrapper
+                - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+                  params:
+                    combine_func_kwargs: null
+                    combine_predictions_func:
+                      load: numpy.mean
+                    independent_labels: false
+                    primary_cols_estimator:
+                      call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                      params:
+                        metric: precomputed
+                        metric_params: null
+                        n_jobs: null
+                        p: 2
+                        weights: similarity
+                    primary_cols_estimator__metric: precomputed
+                    primary_cols_estimator__metric_params: null
+                    primary_cols_estimator__n_jobs: null
+                    primary_cols_estimator__p: 2
+                    primary_cols_estimator__weights: similarity
+                    primary_rows_estimator:
+                      call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                      params:
+                        metric: precomputed
+                        metric_params: null
+                        n_jobs: null
+                        p: 2
+                        weights: similarity
+                    primary_rows_estimator__metric: precomputed
+                    primary_rows_estimator__metric_params: null
+                    primary_rows_estimator__n_jobs: null
+                    primary_rows_estimator__p: 2
+                    primary_rows_estimator__weights: similarity
+                    secondary_cols_estimator:
+                      call: sklearn.kernel_ridge.KernelRidge
+                      params:
+                        alpha: 1
+                        coef0: 1
+                        degree: 3
+                        gamma: null
+                        kernel: precomputed
+                        kernel_params: null
+                    secondary_cols_estimator__alpha: 1
+                    secondary_cols_estimator__coef0: 1
+                    secondary_cols_estimator__degree: 3
+                    secondary_cols_estimator__gamma: null
+                    secondary_cols_estimator__kernel: precomputed
+                    secondary_cols_estimator__kernel_params: null
+                    secondary_rows_estimator:
+                      call: sklearn.kernel_ridge.KernelRidge
+                      params:
+                        alpha: 1
+                        coef0: 1
+                        degree: 3
+                        gamma: null
+                        kernel: precomputed
+                        kernel_params: null
+                    secondary_rows_estimator__alpha: 1
+                    secondary_rows_estimator__coef0: 1
+                    secondary_rows_estimator__degree: 3
+                    secondary_rows_estimator__gamma: null
+                    secondary_rows_estimator__kernel: precomputed
+                    secondary_rows_estimator__kernel_params: null
+              symmetryenforcer:
+                call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                params:
+                  ndim: 2
+                  samplers:
+                    call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                    params:
+                      sampling_strategy: auto
+                  samplers__sampling_strategy: auto
+              symmetryenforcer__ndim: 2
+              symmetryenforcer__samplers:
+                call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                params:
+                  sampling_strategy: auto
+              symmetryenforcer__samplers__sampling_strategy: auto
+              targetkernellinearcombiner:
+                call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                params:
+                  ndim: 2
+                  samplers:
+                    call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                    params:
+                      alpha: 0.5
+                      filter_params: false
+                      gamma: 1.0
+                      gamma_scale: squares
+                      metric: rbf
+                      n_jobs: null
+                  samplers__alpha: 0.5
+                  samplers__filter_params: false
+                  samplers__gamma: 1.0
+                  samplers__gamma_scale: squares
+                  samplers__metric: rbf
+                  samplers__n_jobs: null
+              targetkernellinearcombiner__ndim: 2
+              targetkernellinearcombiner__samplers:
+                call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                params:
+                  alpha: 0.5
+                  filter_params: false
+                  gamma: 1.0
+                  gamma_scale: squares
+                  metric: rbf
+                  n_jobs: null
+              targetkernellinearcombiner__samplers__alpha: 0.5
+              targetkernellinearcombiner__samplers__filter_params: false
+              targetkernellinearcombiner__samplers__gamma: 1.0
+              targetkernellinearcombiner__samplers__gamma_scale: squares
+              targetkernellinearcombiner__samplers__metric: rbf
+              targetkernellinearcombiner__samplers__n_jobs: null
+              verbose: false
+          estimator__estimator__localmultioutputwrapper:
+            call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+            params:
+              combine_func_kwargs: null
+              combine_predictions_func:
+                load: numpy.mean
+              independent_labels: false
+              primary_cols_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              primary_cols_estimator__metric: precomputed
+              primary_cols_estimator__metric_params: null
+              primary_cols_estimator__n_jobs: null
+              primary_cols_estimator__p: 2
+              primary_cols_estimator__weights: similarity
+              primary_rows_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              primary_rows_estimator__metric: precomputed
+              primary_rows_estimator__metric_params: null
+              primary_rows_estimator__n_jobs: null
+              primary_rows_estimator__p: 2
+              primary_rows_estimator__weights: similarity
+              secondary_cols_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              secondary_cols_estimator__alpha: 1
+              secondary_cols_estimator__coef0: 1
+              secondary_cols_estimator__degree: 3
+              secondary_cols_estimator__gamma: null
+              secondary_cols_estimator__kernel: precomputed
+              secondary_cols_estimator__kernel_params: null
+              secondary_rows_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              secondary_rows_estimator__alpha: 1
+              secondary_rows_estimator__coef0: 1
+              secondary_rows_estimator__degree: 3
+              secondary_rows_estimator__gamma: null
+              secondary_rows_estimator__kernel: precomputed
+              secondary_rows_estimator__kernel_params: null
+          estimator__estimator__localmultioutputwrapper__combine_func_kwargs: null
+          estimator__estimator__localmultioutputwrapper__combine_predictions_func:
+            load: numpy.mean
+          estimator__estimator__localmultioutputwrapper__independent_labels: false
+          estimator__estimator__localmultioutputwrapper__primary_cols_estimator:
+            call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+            params:
+              metric: precomputed
+              metric_params: null
+              n_jobs: null
+              p: 2
+              weights: similarity
+          estimator__estimator__localmultioutputwrapper__primary_cols_estimator__metric: precomputed
+          estimator__estimator__localmultioutputwrapper__primary_cols_estimator__metric_params: null
+          estimator__estimator__localmultioutputwrapper__primary_cols_estimator__n_jobs: null
+          estimator__estimator__localmultioutputwrapper__primary_cols_estimator__p: 2
+          estimator__estimator__localmultioutputwrapper__primary_cols_estimator__weights: similarity
+          estimator__estimator__localmultioutputwrapper__primary_rows_estimator:
+            call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+            params:
+              metric: precomputed
+              metric_params: null
+              n_jobs: null
+              p: 2
+              weights: similarity
+          estimator__estimator__localmultioutputwrapper__primary_rows_estimator__metric: precomputed
+          estimator__estimator__localmultioutputwrapper__primary_rows_estimator__metric_params: null
+          estimator__estimator__localmultioutputwrapper__primary_rows_estimator__n_jobs: null
+          estimator__estimator__localmultioutputwrapper__primary_rows_estimator__p: 2
+          estimator__estimator__localmultioutputwrapper__primary_rows_estimator__weights: similarity
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator:
+            call: sklearn.kernel_ridge.KernelRidge
+            params:
+              alpha: 1
+              coef0: 1
+              degree: 3
+              gamma: null
+              kernel: precomputed
+              kernel_params: null
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator__alpha: 1
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator__coef0: 1
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator__degree: 3
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator__gamma: null
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator__kernel: precomputed
+          estimator__estimator__localmultioutputwrapper__secondary_cols_estimator__kernel_params: null
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator:
+            call: sklearn.kernel_ridge.KernelRidge
+            params:
+              alpha: 1
+              coef0: 1
+              degree: 3
+              gamma: null
+              kernel: precomputed
+              kernel_params: null
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator__alpha: 1
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator__coef0: 1
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator__degree: 3
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator__gamma: null
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator__kernel: precomputed
+          estimator__estimator__localmultioutputwrapper__secondary_rows_estimator__kernel_params: null
+          estimator__estimator__memory: null
+          estimator__estimator__steps:
+          - - symmetryenforcer
+            - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+              params:
+                ndim: 2
+                samplers:
+                  call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                  params:
+                    sampling_strategy: auto
+                samplers__sampling_strategy: auto
+          - - targetkernellinearcombiner
+            - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+              params:
+                ndim: 2
+                samplers:
+                  call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                  params:
+                    alpha: 0.5
+                    filter_params: false
+                    gamma: 1.0
+                    gamma_scale: squares
+                    metric: rbf
+                    n_jobs: null
+                samplers__alpha: 0.5
+                samplers__filter_params: false
+                samplers__gamma: 1.0
+                samplers__gamma_scale: squares
+                samplers__metric: rbf
+                samplers__n_jobs: null
+          - - localmultioutputwrapper
+            - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+              params:
+                combine_func_kwargs: null
+                combine_predictions_func:
+                  load: numpy.mean
+                independent_labels: false
+                primary_cols_estimator:
+                  call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                  params:
+                    metric: precomputed
+                    metric_params: null
+                    n_jobs: null
+                    p: 2
+                    weights: similarity
+                primary_cols_estimator__metric: precomputed
+                primary_cols_estimator__metric_params: null
+                primary_cols_estimator__n_jobs: null
+                primary_cols_estimator__p: 2
+                primary_cols_estimator__weights: similarity
+                primary_rows_estimator:
+                  call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                  params:
+                    metric: precomputed
+                    metric_params: null
+                    n_jobs: null
+                    p: 2
+                    weights: similarity
+                primary_rows_estimator__metric: precomputed
+                primary_rows_estimator__metric_params: null
+                primary_rows_estimator__n_jobs: null
+                primary_rows_estimator__p: 2
+                primary_rows_estimator__weights: similarity
+                secondary_cols_estimator:
+                  call: sklearn.kernel_ridge.KernelRidge
+                  params:
+                    alpha: 1
+                    coef0: 1
+                    degree: 3
+                    gamma: null
+                    kernel: precomputed
+                    kernel_params: null
+                secondary_cols_estimator__alpha: 1
+                secondary_cols_estimator__coef0: 1
+                secondary_cols_estimator__degree: 3
+                secondary_cols_estimator__gamma: null
+                secondary_cols_estimator__kernel: precomputed
+                secondary_cols_estimator__kernel_params: null
+                secondary_rows_estimator:
+                  call: sklearn.kernel_ridge.KernelRidge
+                  params:
+                    alpha: 1
+                    coef0: 1
+                    degree: 3
+                    gamma: null
+                    kernel: precomputed
+                    kernel_params: null
+                secondary_rows_estimator__alpha: 1
+                secondary_rows_estimator__coef0: 1
+                secondary_rows_estimator__degree: 3
+                secondary_rows_estimator__gamma: null
+                secondary_rows_estimator__kernel: precomputed
+                secondary_rows_estimator__kernel_params: null
+          estimator__estimator__symmetryenforcer:
+            call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+            params:
+              ndim: 2
+              samplers:
+                call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                params:
+                  sampling_strategy: auto
+              samplers__sampling_strategy: auto
+          estimator__estimator__symmetryenforcer__ndim: 2
+          estimator__estimator__symmetryenforcer__samplers:
+            call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+            params:
+              sampling_strategy: auto
+          estimator__estimator__symmetryenforcer__samplers__sampling_strategy: auto
+          estimator__estimator__targetkernellinearcombiner:
+            call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+            params:
+              ndim: 2
+              samplers:
+                call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                params:
+                  alpha: 0.5
+                  filter_params: false
+                  gamma: 1.0
+                  gamma_scale: squares
+                  metric: rbf
+                  n_jobs: null
+              samplers__alpha: 0.5
+              samplers__filter_params: false
+              samplers__gamma: 1.0
+              samplers__gamma_scale: squares
+              samplers__metric: rbf
+              samplers__n_jobs: null
+          estimator__estimator__targetkernellinearcombiner__ndim: 2
+          estimator__estimator__targetkernellinearcombiner__samplers:
+            call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+            params:
+              alpha: 0.5
+              filter_params: false
+              gamma: 1.0
+              gamma_scale: squares
+              metric: rbf
+              n_jobs: null
+          estimator__estimator__targetkernellinearcombiner__samplers__alpha: 0.5
+          estimator__estimator__targetkernellinearcombiner__samplers__filter_params: false
+          estimator__estimator__targetkernellinearcombiner__samplers__gamma: 1.0
+          estimator__estimator__targetkernellinearcombiner__samplers__gamma_scale: squares
+          estimator__estimator__targetkernellinearcombiner__samplers__metric: rbf
+          estimator__estimator__targetkernellinearcombiner__samplers__n_jobs: null
+          estimator__estimator__verbose: false
+          estimator__n_jobs: 3
+          estimator__pairwise: true
+          estimator__param_grid:
+            targetkernellinearcombiner__samplers__alpha:
+            - 0.0
+            - 0.1
+            - 0.25
+            - 0.5
+            - 0.75
+            - 0.9
+            - 1.0
+          estimator__pre_dispatch: 2*n_jobs
+          estimator__refit: true
+          estimator__return_train_score: false
+          estimator__scoring: neg_mean_squared_error
+          estimator__train_test_combinations: null
+          estimator__verbose: 0
+    verbose: false
+  name: blmnii_rls__drop30
+  params: {}
+hash: 8b612f60406b551f11fd0286b44bd9ee4a880d8415dd1a8ebc5a4f7694f2f947
+path: /home/pedro/mestrado/biomal_repo/scripts/run_experiments/literature_models2/runs/8b612f6_20230811T084744646928_blmnii_rls__drop30_mirna.yml
+results:
+  LL_average_precision:
+  - 0.10441774803731103
+  - 0.0918039391600228
+  - 0.09365523524425569
+  - 0.09581926392051457
+  - 0.10407407533630457
+  - 0.09942652162269765
+  - 0.09651269155254844
+  - 0.10023994351845142
+  - 0.09323304060029658
+  - 0.09588844873952045
+  - 0.09456637857309336
+  - 0.10275142530909061
+  - 0.09832571787095032
+  - 0.09123323004469287
+  - 0.09419535824504796
+  - 0.09415103646070826
+  LL_balanced_accuracy:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  LL_f1_macro:
+  - 0.48158358711331944
+  - 0.48143397678445454
+  - 0.48187209724539415
+  - 0.4815595064229869
+  - 0.4816193175414599
+  - 0.48144214280204356
+  - 0.481943823648321
+  - 0.48158292473515035
+  - 0.4817367520880925
+  - 0.48156642387555365
+  - 0.48208259796106806
+  - 0.4816871299116517
+  - 0.4816734301213152
+  - 0.4815836462541451
+  - 0.48200707957048394
+  - 0.48169264548869467
+  LL_f1_micro:
+  - 0.9289512738065793
+  - 0.9283947563690329
+  - 0.9300253753629959
+  - 0.9288616772591132
+  - 0.9290842306415992
+  - 0.9284251238685906
+  - 0.9302925930587818
+  - 0.9289488091979196
+  - 0.9295213465917543
+  - 0.9288874140357702
+  - 0.9308098087903789
+  - 0.9293366183045898
+  - 0.9292856243777964
+  - 0.9289514938609239
+  - 0.9305283152727397
+  - 0.929357149374943
+  LL_f1_weighted:
+  - 0.8947353733865197
+  - 0.8939215591691567
+  - 0.8963065562352036
+  - 0.8946043416722526
+  - 0.8949298262002788
+  - 0.8939659621330939
+  - 0.8966975388209216
+  - 0.8947317689255384
+  - 0.8955691890073237
+  - 0.8946419803204333
+  - 0.8974544216586218
+  - 0.8952989767858761
+  - 0.8952243885129625
+  - 0.8947356952135577
+  - 0.8970424714045118
+  - 0.8953290077724965
+  LL_matthews_corrcoef:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  LL_precision_macro:
+  - 0.46447563690328963
+  - 0.46419737818451645
+  - 0.46501268768149795
+  - 0.4644308386295566
+  - 0.46454211532079964
+  - 0.4642125619342953
+  - 0.4651462965293909
+  - 0.4644744045989598
+  - 0.46476067329587717
+  - 0.4644437070178851
+  - 0.46540490439518944
+  - 0.4646683091522949
+  - 0.4646428121888982
+  - 0.46447574693046195
+  - 0.46526415763636986
+  - 0.4646785746874715
+  LL_precision_micro:
+  - 0.9289512738065793
+  - 0.9283947563690329
+  - 0.9300253753629959
+  - 0.9288616772591132
+  - 0.9290842306415993
+  - 0.9284251238685906
+  - 0.9302925930587818
+  - 0.9289488091979196
+  - 0.9295213465917543
+  - 0.9288874140357702
+  - 0.9308098087903789
+  - 0.9293366183045898
+  - 0.9292856243777964
+  - 0.9289514938609239
+  - 0.9305283152727397
+  - 0.929357149374943
+  LL_precision_weighted:
+  - 0.8629504691068662
+  - 0.861916823653516
+  - 0.8649471988190814
+  - 0.8627840154806128
+  - 0.8631975076268924
+  - 0.8619732106304078
+  - 0.8654443087000322
+  - 0.8629458901102327
+  - 0.8640099337697483
+  - 0.8628318279540605
+  - 0.8664069001403817
+  - 0.8636665501218108
+  - 0.8635717716752309
+  - 0.8629508779464421
+  - 0.8658829455243233
+  - 0.86370471109432
+  LL_recall_macro:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  LL_recall_micro:
+  - 0.9289512738065793
+  - 0.9283947563690329
+  - 0.9300253753629959
+  - 0.9288616772591132
+  - 0.9290842306415993
+  - 0.9284251238685906
+  - 0.9302925930587818
+  - 0.9289488091979196
+  - 0.9295213465917543
+  - 0.9288874140357702
+  - 0.9308098087903789
+  - 0.9293366183045898
+  - 0.9292856243777964
+  - 0.9289514938609239
+  - 0.9305283152727397
+  - 0.929357149374943
+  LL_recall_weighted:
+  - 0.9289512738065793
+  - 0.9283947563690329
+  - 0.9300253753629959
+  - 0.9288616772591132
+  - 0.9290842306415993
+  - 0.9284251238685906
+  - 0.9302925930587818
+  - 0.9289488091979196
+  - 0.9295213465917543
+  - 0.9288874140357702
+  - 0.9308098087903789
+  - 0.9293366183045898
+  - 0.9292856243777964
+  - 0.9289514938609239
+  - 0.9305283152727397
+  - 0.929357149374943
+  LL_roc_auc:
+  - 0.5771308649980343
+  - 0.5590206805526057
+  - 0.5645600119360326
+  - 0.5739951627082247
+  - 0.5806234191799552
+  - 0.5727922286505246
+  - 0.5640555394042045
+  - 0.576676930331774
+  - 0.561249265510737
+  - 0.5663254560606248
+  - 0.5658705173855609
+  - 0.5790312218167504
+  - 0.5687810120266719
+  - 0.5555216585165168
+  - 0.5652273413244301
+  - 0.5663510372593408
+  LT_average_precision:
+  - 0.09167730114210197
+  - 0.08516044668452262
+  - 0.09629670177760603
+  - 0.0858414261909378
+  - 0.0943907631338801
+  - 0.09066999191476491
+  - 0.09515999953189405
+  - 0.09029281124591258
+  - 0.08499995643973829
+  - 0.08769102116746647
+  - 0.09694354677789714
+  - 0.09119028218097952
+  - 0.08787327154527044
+  - 0.08410162045066166
+  - 0.09477824913751184
+  - 0.08492649560454296
+  LT_balanced_accuracy:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  LT_f1_macro:
+  - 0.48169813999716027
+  - 0.48214482041970047
+  - 0.4808338459241034
+  - 0.48177214917703215
+  - 0.48173002575034224
+  - 0.48225889889662893
+  - 0.4807576134465726
+  - 0.4818412600658104
+  - 0.481862345306904
+  - 0.4823707786756032
+  - 0.4808258748538801
+  - 0.48201374472045244
+  - 0.4819358269810317
+  - 0.4822038583112447
+  - 0.48093653088555527
+  - 0.48188021825368416
+  LT_f1_micro:
+  - 0.9293776024545255
+  - 0.9310418036379575
+  - 0.9261656256848565
+  - 0.9296531408181894
+  - 0.9294963044073364
+  - 0.9314672871612374
+  - 0.9258828360251847
+  - 0.9299105137684415
+  - 0.9299890500958117
+  - 0.9318847522584177
+  - 0.9261360525595401
+  - 0.9305531562035725
+  - 0.9302627977005201
+  - 0.931261976457706
+  - 0.9265466739666028
+  - 0.9300556265763743
+  LT_f1_weighted:
+  - 0.8953589249147305
+  - 0.897793966436514
+  - 0.8906635595215061
+  - 0.8957619832823144
+  - 0.8955325573139883
+  - 0.8984167765292167
+  - 0.8902504451572243
+  - 0.8961385074052619
+  - 0.8962534095778153
+  - 0.899027947165629
+  - 0.8906203554113199
+  - 0.8970788229662402
+  - 0.8966539414389767
+  - 0.8981162362929227
+  - 0.8912202861620951
+  - 0.8963508166453804
+  LT_matthews_corrcoef:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  LT_precision_macro:
+  - 0.46468880122726275
+  - 0.46552090181897876
+  - 0.46308281284242825
+  - 0.4648265704090947
+  - 0.4647481522036682
+  - 0.4657336435806187
+  - 0.46294141801259237
+  - 0.46495525688422074
+  - 0.46499452504790584
+  - 0.46594237612920886
+  - 0.46306802627977006
+  - 0.46527657810178624
+  - 0.46513139885026006
+  - 0.465630988228853
+  - 0.4632733369833014
+  - 0.46502781328818715
+  LT_precision_micro:
+  - 0.9293776024545255
+  - 0.9310418036379575
+  - 0.9261656256848565
+  - 0.9296531408181894
+  - 0.9294963044073364
+  - 0.9314672871612374
+  - 0.9258828360251847
+  - 0.9299105137684415
+  - 0.9299890500958117
+  - 0.9318847522584177
+  - 0.9261360525595401
+  - 0.9305531562035725
+  - 0.9302627977005201
+  - 0.931261976457706
+  - 0.9265466739666028
+  - 0.9300556265763743
+  LT_precision_weighted:
+  - 0.863742727944122
+  - 0.8668388401214211
+  - 0.8577827662002218
+  - 0.8642549622331241
+  - 0.8639633799068958
+  - 0.867631307051515
+  - 0.8572590260460391
+  - 0.8647335636170868
+  - 0.8648796332981101
+  - 0.8684091914917327
+  - 0.8577279878505673
+  - 0.8659291765204304
+  - 0.8653888727855988
+  - 0.867248868795913
+  - 0.8584887390385741
+  - 0.8650034685263721
+  LT_recall_macro:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  LT_recall_micro:
+  - 0.9293776024545255
+  - 0.9310418036379575
+  - 0.9261656256848565
+  - 0.9296531408181894
+  - 0.9294963044073364
+  - 0.9314672871612374
+  - 0.9258828360251847
+  - 0.9299105137684415
+  - 0.9299890500958117
+  - 0.9318847522584177
+  - 0.9261360525595401
+  - 0.9305531562035725
+  - 0.9302627977005201
+  - 0.931261976457706
+  - 0.9265466739666028
+  - 0.9300556265763743
+  LT_recall_weighted:
+  - 0.9293776024545255
+  - 0.9310418036379575
+  - 0.9261656256848565
+  - 0.9296531408181894
+  - 0.9294963044073364
+  - 0.9314672871612374
+  - 0.9258828360251847
+  - 0.9299105137684415
+  - 0.9299890500958117
+  - 0.9318847522584177
+  - 0.9261360525595401
+  - 0.9305531562035725
+  - 0.9302627977005201
+  - 0.931261976457706
+  - 0.9265466739666028
+  - 0.9300556265763743
+  LT_roc_auc:
+  - 0.5603335714655184
+  - 0.5455912421830031
+  - 0.5595983753517698
+  - 0.5489583504635641
+  - 0.5670599905416038
+  - 0.5596032470767983
+  - 0.5541383578943
+  - 0.5576149512027058
+  - 0.5497906308556882
+  - 0.5545916815517618
+  - 0.5595413016181576
+  - 0.5559735802848158
+  - 0.5569615562966189
+  - 0.538808401371951
+  - 0.5547309957522096
+  - 0.5467417252008391
+  TL_average_precision:
+  - 0.09273193151789104
+  - 0.08585606751648148
+  - 0.0871548403491851
+  - 0.0887133477027547
+  - 0.09250961144791223
+  - 0.08801236886983681
+  - 0.08267253977741175
+  - 0.08905378540084735
+  - 0.09402414910767092
+  - 0.09642084529592423
+  - 0.09703140831610058
+  - 0.10582282434478651
+  - 0.0972901784121802
+  - 0.09012216906103675
+  - 0.09154577618739203
+  - 0.09310870732014995
+  TL_balanced_accuracy:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  TL_f1_macro:
+  - 0.48186184308682584
+  - 0.4817237617746446
+  - 0.48228850918228994
+  - 0.48184319460625136
+  - 0.4817552555118783
+  - 0.4816998910326261
+  - 0.48207429338021
+  - 0.48177355986101694
+  - 0.481402566121636
+  - 0.48132679533597517
+  - 0.4816574369201731
+  - 0.48146070009339786
+  - 0.48159281948995586
+  - 0.48127503670862615
+  - 0.48188439331050337
+  - 0.48144412640012496
+  TL_f1_micro:
+  - 0.9299871793992829
+  - 0.9294729841833552
+  - 0.9315777566005526
+  - 0.9299177190968235
+  - 0.9295902382719105
+  - 0.9293841207024487
+  - 0.9307788495891389
+  - 0.9296583936007012
+  - 0.9282779564130046
+  - 0.9279962624014071
+  - 0.9292260972325281
+  - 0.928494137628753
+  - 0.9289856267348229
+  - 0.9278038860032429
+  - 0.9300711792673207
+  - 0.9284325005478852
+  TL_f1_weighted:
+  - 0.896250672624914
+  - 0.8954984448174211
+  - 0.8985784948365253
+  - 0.8961490489811442
+  - 0.895669965520064
+  - 0.8953684593396452
+  - 0.8974091124178579
+  - 0.8957696674793686
+  - 0.8937507805827373
+  - 0.893338934130864
+  - 0.8951373206247101
+  - 0.8940668750707103
+  - 0.894785614489734
+  - 0.8930576985892335
+  - 0.8963735719136345
+  - 0.8939767482955202
+  TL_matthews_corrcoef:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  TL_precision_macro:
+  - 0.46499358969964144
+  - 0.46473649209167756
+  - 0.4657888783002763
+  - 0.46495885954841176
+  - 0.46479511913595517
+  - 0.46469206035122435
+  - 0.46538942479456946
+  - 0.4648291968003506
+  - 0.4641389782065023
+  - 0.46399813120070355
+  - 0.46461304861626407
+  - 0.4642470688143765
+  - 0.46449281336741144
+  - 0.46390194300162146
+  - 0.4650355896336604
+  - 0.4642162502739426
+  TL_precision_micro:
+  - 0.9299871793992829
+  - 0.9294729841833551
+  - 0.9315777566005526
+  - 0.9299177190968235
+  - 0.9295902382719103
+  - 0.9293841207024487
+  - 0.9307788495891389
+  - 0.9296583936007012
+  - 0.9282779564130046
+  - 0.9279962624014071
+  - 0.9292260972325281
+  - 0.928494137628753
+  - 0.9289856267348229
+  - 0.9278038860032429
+  - 0.9300711792673207
+  - 0.9284325005478852
+  TL_precision_weighted:
+  - 0.864876153847034
+  - 0.8639200283267116
+  - 0.8678371165929185
+  - 0.8647469642902389
+  - 0.864138011090427
+  - 0.8637548438138637
+  - 0.8663492668424809
+  - 0.8642647287922364
+  - 0.8616999643623041
+  - 0.8611770630309812
+  - 0.8634611397779959
+  - 0.8621013636109618
+  - 0.8630142946798917
+  - 0.8608200508827185
+  - 0.8650323985037046
+  - 0.8619869080735988
+  TL_recall_macro:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  TL_recall_micro:
+  - 0.9299871793992829
+  - 0.9294729841833551
+  - 0.9315777566005526
+  - 0.9299177190968235
+  - 0.9295902382719103
+  - 0.9293841207024487
+  - 0.9307788495891389
+  - 0.9296583936007012
+  - 0.9282779564130046
+  - 0.9279962624014071
+  - 0.9292260972325281
+  - 0.928494137628753
+  - 0.9289856267348229
+  - 0.9278038860032429
+  - 0.9300711792673207
+  - 0.9284325005478852
+  TL_recall_weighted:
+  - 0.9299871793992829
+  - 0.9294729841833551
+  - 0.9315777566005526
+  - 0.9299177190968235
+  - 0.9295902382719103
+  - 0.9293841207024487
+  - 0.9307788495891389
+  - 0.9296583936007012
+  - 0.9282779564130046
+  - 0.9279962624014071
+  - 0.9292260972325281
+  - 0.928494137628753
+  - 0.9289856267348229
+  - 0.9278038860032429
+  - 0.9300711792673207
+  - 0.9284325005478852
+  TL_roc_auc:
+  - 0.5584529029637193
+  - 0.5498921884011312
+  - 0.5558382243331812
+  - 0.5585918839710765
+  - 0.5636146504601622
+  - 0.5559086705042993
+  - 0.5447418123421222
+  - 0.5617899062268037
+  - 0.5538148745560072
+  - 0.56222108938568
+  - 0.5601049011961846
+  - 0.5753720466430949
+  - 0.5734324178249517
+  - 0.5550650777865928
+  - 0.5651170493428541
+  - 0.5667551644365811
+  TT_average_precision:
+  - 0.08530785124430088
+  - 0.08015070141281025
+  - 0.08771610085247333
+  - 0.08301319275197236
+  - 0.08297545459123966
+  - 0.08061388702700202
+  - 0.08913901249898001
+  - 0.07900967368592368
+  - 0.08974178876516556
+  - 0.09032350451904067
+  - 0.09403126140260934
+  - 0.09364481693546028
+  - 0.08767202446665132
+  - 0.0828620553504616
+  - 0.09610433857633884
+  - 0.08548572250474891
+  TT_balanced_accuracy:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  TT_f1_macro:
+  - 0.4821311022869641
+  - 0.48254315146242877
+  - 0.4808523319922515
+  - 0.48219013624036616
+  - 0.4820364379363188
+  - 0.4822017489733824
+  - 0.48108108108108105
+  - 0.48198377303745094
+  - 0.4816392604583795
+  - 0.4818655056048203
+  - 0.48087629855585656
+  - 0.481465545061423
+  - 0.481418342993522
+  - 0.48236695452418427
+  - 0.4805438750026681
+  - 0.4818668443794742
+  TT_f1_micro:
+  - 0.9309906511399049
+  - 0.9325282926029195
+  - 0.9262342135476463
+  - 0.9312107976069721
+  - 0.930637738330046
+  - 0.9312541091387245
+  - 0.9270833333333334
+  - 0.9304414571404863
+  - 0.9291584483892176
+  - 0.9300008218277449
+  - 0.9263231426692965
+  - 0.9285121566674963
+  - 0.928336620644313
+  - 0.931870479947403
+  - 0.9250904010519395
+  - 0.9300058086465853
+  TT_f1_weighted:
+  - 0.8977190977058815
+  - 0.8999702822809813
+  - 0.8907637631107896
+  - 0.8980413227332119
+  - 0.8972026007874546
+  - 0.8981047203306843
+  - 0.8920045045045044
+  - 0.8969153682060705
+  - 0.8950383758616763
+  - 0.8962706324458494
+  - 0.89089368822688
+  - 0.8940932232121471
+  - 0.8938365553015819
+  - 0.8990070508464374
+  - 0.8890930520985426
+  - 0.8962779285342224
+  TT_matthews_corrcoef:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  TT_precision_macro:
+  - 0.46549532556995243
+  - 0.46626414630145974
+  - 0.4631171067738232
+  - 0.46560539880348606
+  - 0.465318869165023
+  - 0.46562705456936226
+  - 0.4635416666666667
+  - 0.46522072857024316
+  - 0.4645792241946088
+  - 0.46500041091387245
+  - 0.46316157133464825
+  - 0.4642560783337482
+  - 0.4641683103221565
+  - 0.4659352399737015
+  - 0.46254520052596976
+  - 0.46500290432329267
+  TT_precision_micro:
+  - 0.9309906511399049
+  - 0.9325282926029195
+  - 0.9262342135476463
+  - 0.9312107976069721
+  - 0.930637738330046
+  - 0.9312541091387245
+  - 0.9270833333333334
+  - 0.9304414571404863
+  - 0.9291584483892176
+  - 0.9300008218277449
+  - 0.9263231426692965
+  - 0.9285121566674964
+  - 0.928336620644313
+  - 0.931870479947403
+  - 0.9250904010519395
+  - 0.9300058086465853
+  TT_precision_weighted:
+  - 0.8667435925099041
+  - 0.8696090165049162
+  - 0.857909818346227
+  - 0.867153549579813
+  - 0.8660866000040633
+  - 0.8672342157877594
+  - 0.8594835069444444
+  - 0.8657213051657114
+  - 0.8633354222130583
+  - 0.864901528600281
+  - 0.8580745646447219
+  - 0.8621348250793254
+  - 0.861808881229303
+  - 0.8683825913974031
+  - 0.8557922501184383
+  - 0.864910804116389
+  TT_recall_macro:
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  - 0.5
+  TT_recall_micro:
+  - 0.9309906511399049
+  - 0.9325282926029195
+  - 0.9262342135476463
+  - 0.9312107976069721
+  - 0.930637738330046
+  - 0.9312541091387245
+  - 0.9270833333333334
+  - 0.9304414571404863
+  - 0.9291584483892176
+  - 0.9300008218277449
+  - 0.9263231426692965
+  - 0.9285121566674964
+  - 0.928336620644313
+  - 0.931870479947403
+  - 0.9250904010519395
+  - 0.9300058086465853
+  TT_recall_weighted:
+  - 0.9309906511399049
+  - 0.9325282926029195
+  - 0.9262342135476463
+  - 0.9312107976069721
+  - 0.930637738330046
+  - 0.9312541091387245
+  - 0.9270833333333334
+  - 0.9304414571404863
+  - 0.9291584483892176
+  - 0.9300008218277449
+  - 0.9263231426692965
+  - 0.9285121566674964
+  - 0.928336620644313
+  - 0.931870479947403
+  - 0.9250904010519395
+  - 0.9300058086465853
+  TT_roc_auc:
+  - 0.5478179334702257
+  - 0.5392715473765364
+  - 0.5430852037537344
+  - 0.5488220334361436
+  - 0.5532595507109841
+  - 0.5408516779774781
+  - 0.5463280895279586
+  - 0.5318751115758222
+  - 0.5541377968825867
+  - 0.547398769098429
+  - 0.5524821819731561
+  - 0.5501840918299344
+  - 0.5507015110589606
+  - 0.5455445638955871
+  - 0.5615946308001382
+  - 0.5531253020532947
+  fit_time:
+  - 241.9267394542694
+  - 229.72244787216187
+  - 246.04943585395813
+  - 243.53249168395996
+  - 233.53328251838684
+  - 240.94227743148804
+  - 231.7980968952179
+  - 234.25427103042603
+  - 225.36753511428833
+  - 242.02408361434937
+  - 240.55346131324768
+  - 222.72827243804932
+  - 243.83798456192017
+  - 237.31932282447815
+  - 228.24062299728394
+  - 235.8953709602356
+  score_time:
+  - 14.09383511543274
+  - 12.68663763999939
+  - 11.654789686203003
+  - 11.801518678665161
+  - 12.71258807182312
+  - 11.931368350982666
+  - 12.387195587158203
+  - 11.779683113098145
+  - 12.524936437606812
+  - 11.765058994293213
+  - 11.825084209442139
+  - 16.16411280632019
+  - 11.946465253829956
+  - 12.43342113494873
+  - 12.067109107971191
+  - 12.29832649230957
+start: 2023-08-11 08:47:44.646928
+wrapper:
+  call: bipartite_positive_dropper.wrap_estimator
+  name: drop30
+  params:
+    drop: 0.3
+    random_state: 0

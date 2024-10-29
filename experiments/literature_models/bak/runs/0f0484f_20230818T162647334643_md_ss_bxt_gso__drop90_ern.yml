@@ -1,0 +1,1438 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 16
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    - matthews_corrcoef
+    - balanced_accuracy
+    - f1_macro
+    - f1_micro
+    - f1_weighted
+    - precision_macro
+    - precision_micro
+    - precision_weighted
+    - recall_macro
+    - recall_micro
+    - recall_weighted
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/ern/X1.txt
+    read:
+      call: utils.load_regulatory_network_features
+      params: {}
+    url: https://people.montefiore.uliege.be/schrynemackers/ern/X1.txt
+  - force_download: false
+    path: datasets/ern/X2.txt
+    read:
+      call: utils.load_regulatory_network_features
+      params: {}
+    url: https://people.montefiore.uliege.be/schrynemackers/ern/X2.txt
+  name: ern
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/ern/Y.txt
+    read:
+      call: numpy.loadtxt
+      params:
+        delimiter: ','
+    url: https://people.montefiore.uliege.be/schrynemackers/ern/Y.txt
+directory: runs
+end: 2023-08-18 16:33:19.651480
+estimator:
+  call: missing_data_simulation.estimators.md_ss_bxt_gso
+  final_params:
+    memory: null
+    steps:
+    - - dropper
+      - call: bipartite_positive_dropper.PositiveDropper
+        params:
+          drop: 0.9
+          random_state: 0
+    - - estimator
+      - call: missing_data_simulation.estimators.RegressorToBinaryClassifier
+        params:
+          estimator:
+            call: imblearn.pipeline.Pipeline
+            params:
+              bipartiteextratreesregressorss:
+                call: bipartite_learn.ensemble._semisupervised_forest.BipartiteExtraTreesRegressorSS
+                params:
+                  axis_decision_only: false
+                  bipartite_adapter: gmosa
+                  bootstrap: false
+                  ccp_alpha: 0.0
+                  criterion: squared_error_gso
+                  max_col_features: null
+                  max_depth: null
+                  max_features: 1.0
+                  max_leaf_nodes: null
+                  max_row_features: null
+                  max_samples: null
+                  min_col_weight_fraction_leaf: 0.0
+                  min_cols_leaf: 1
+                  min_cols_split: 1
+                  min_impurity_decrease: 0.0
+                  min_row_weight_fraction_leaf: 0.0
+                  min_rows_leaf: 1
+                  min_rows_split: 1
+                  min_samples_leaf: 1
+                  min_samples_split: 2
+                  min_weight_fraction_leaf: 0.0
+                  n_estimators: 100
+                  n_jobs: 3
+                  oob_score: false
+                  prediction_weights: null
+                  preprocess_X_targets: null
+                  random_state: null
+                  ss_adapter: null
+                  supervision: 0.5
+                  unsupervised_criterion_cols: mean_distance
+                  unsupervised_criterion_rows: mean_distance
+                  update_supervision: null
+                  verbose: 0
+                  warm_start: false
+              bipartiteextratreesregressorss__axis_decision_only: false
+              bipartiteextratreesregressorss__bipartite_adapter: gmosa
+              bipartiteextratreesregressorss__bootstrap: false
+              bipartiteextratreesregressorss__ccp_alpha: 0.0
+              bipartiteextratreesregressorss__criterion: squared_error_gso
+              bipartiteextratreesregressorss__max_col_features: null
+              bipartiteextratreesregressorss__max_depth: null
+              bipartiteextratreesregressorss__max_features: 1.0
+              bipartiteextratreesregressorss__max_leaf_nodes: null
+              bipartiteextratreesregressorss__max_row_features: null
+              bipartiteextratreesregressorss__max_samples: null
+              bipartiteextratreesregressorss__min_col_weight_fraction_leaf: 0.0
+              bipartiteextratreesregressorss__min_cols_leaf: 1
+              bipartiteextratreesregressorss__min_cols_split: 1
+              bipartiteextratreesregressorss__min_impurity_decrease: 0.0
+              bipartiteextratreesregressorss__min_row_weight_fraction_leaf: 0.0
+              bipartiteextratreesregressorss__min_rows_leaf: 1
+              bipartiteextratreesregressorss__min_rows_split: 1
+              bipartiteextratreesregressorss__min_samples_leaf: 1
+              bipartiteextratreesregressorss__min_samples_split: 2
+              bipartiteextratreesregressorss__min_weight_fraction_leaf: 0.0
+              bipartiteextratreesregressorss__n_estimators: 100
+              bipartiteextratreesregressorss__n_jobs: 3
+              bipartiteextratreesregressorss__oob_score: false
+              bipartiteextratreesregressorss__prediction_weights: null
+              bipartiteextratreesregressorss__preprocess_X_targets: null
+              bipartiteextratreesregressorss__random_state: null
+              bipartiteextratreesregressorss__ss_adapter: null
+              bipartiteextratreesregressorss__supervision: 0.5
+              bipartiteextratreesregressorss__unsupervised_criterion_cols: mean_distance
+              bipartiteextratreesregressorss__unsupervised_criterion_rows: mean_distance
+              bipartiteextratreesregressorss__update_supervision: null
+              bipartiteextratreesregressorss__verbose: 0
+              bipartiteextratreesregressorss__warm_start: false
+              memory: null
+              minmaxscaler:
+                call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+                params:
+                  ndim: 2
+                  transformers:
+                    call: sklearn.preprocessing._data.MinMaxScaler
+                    params:
+                      clip: true
+                      copy: true
+                      feature_range:
+                      - 0
+                      - 1
+                  transformers__clip: true
+                  transformers__copy: true
+                  transformers__feature_range:
+                  - 0
+                  - 1
+              minmaxscaler__ndim: 2
+              minmaxscaler__transformers:
+                call: sklearn.preprocessing._data.MinMaxScaler
+                params:
+                  clip: true
+                  copy: true
+                  feature_range:
+                  - 0
+                  - 1
+              minmaxscaler__transformers__clip: true
+              minmaxscaler__transformers__copy: true
+              minmaxscaler__transformers__feature_range:
+              - 0
+              - 1
+              positivedropper:
+                call: missing_data_simulation.positive_dropper.PositiveDropper
+                params:
+                  drop: 0.0
+                  random_state:
+                    call: numpy.random.mtrand.RandomState
+                    params: {}
+              positivedropper__drop: 0.0
+              positivedropper__random_state:
+                call: numpy.random.mtrand.RandomState
+                params: {}
+              similaritydistanceswitcher:
+                call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+                params:
+                  ndim: 2
+                  transformers:
+                    call: bipartite_learn.preprocessing.monopartite.SimilarityDistanceSwitcher
+                    params: {}
+              similaritydistanceswitcher__ndim: 2
+              similaritydistanceswitcher__transformers:
+                call: bipartite_learn.preprocessing.monopartite.SimilarityDistanceSwitcher
+                params: {}
+              steps:
+              - - symmetryenforcer
+                - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                  params:
+                    ndim: 2
+                    samplers:
+                      call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                      params:
+                        sampling_strategy: auto
+                    samplers__sampling_strategy: auto
+              - - minmaxscaler
+                - call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+                  params:
+                    ndim: 2
+                    transformers:
+                      call: sklearn.preprocessing._data.MinMaxScaler
+                      params:
+                        clip: true
+                        copy: true
+                        feature_range:
+                        - 0
+                        - 1
+                    transformers__clip: true
+                    transformers__copy: true
+                    transformers__feature_range:
+                    - 0
+                    - 1
+              - - similaritydistanceswitcher
+                - call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+                  params:
+                    ndim: 2
+                    transformers:
+                      call: bipartite_learn.preprocessing.monopartite.SimilarityDistanceSwitcher
+                      params: {}
+              - - positivedropper
+                - call: missing_data_simulation.positive_dropper.PositiveDropper
+                  params:
+                    drop: 0.0
+                    random_state:
+                      call: numpy.random.mtrand.RandomState
+                      params: {}
+              - - bipartiteextratreesregressorss
+                - call: bipartite_learn.ensemble._semisupervised_forest.BipartiteExtraTreesRegressorSS
+                  params:
+                    axis_decision_only: false
+                    bipartite_adapter: gmosa
+                    bootstrap: false
+                    ccp_alpha: 0.0
+                    criterion: squared_error_gso
+                    max_col_features: null
+                    max_depth: null
+                    max_features: 1.0
+                    max_leaf_nodes: null
+                    max_row_features: null
+                    max_samples: null
+                    min_col_weight_fraction_leaf: 0.0
+                    min_cols_leaf: 1
+                    min_cols_split: 1
+                    min_impurity_decrease: 0.0
+                    min_row_weight_fraction_leaf: 0.0
+                    min_rows_leaf: 1
+                    min_rows_split: 1
+                    min_samples_leaf: 1
+                    min_samples_split: 2
+                    min_weight_fraction_leaf: 0.0
+                    n_estimators: 100
+                    n_jobs: 3
+                    oob_score: false
+                    prediction_weights: null
+                    preprocess_X_targets: null
+                    random_state: null
+                    ss_adapter: null
+                    supervision: 0.5
+                    unsupervised_criterion_cols: mean_distance
+                    unsupervised_criterion_rows: mean_distance
+                    update_supervision: null
+                    verbose: 0
+                    warm_start: false
+              symmetryenforcer:
+                call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                params:
+                  ndim: 2
+                  samplers:
+                    call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                    params:
+                      sampling_strategy: auto
+                  samplers__sampling_strategy: auto
+              symmetryenforcer__ndim: 2
+              symmetryenforcer__samplers:
+                call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                params:
+                  sampling_strategy: auto
+              symmetryenforcer__samplers__sampling_strategy: auto
+              verbose: false
+          estimator__bipartiteextratreesregressorss:
+            call: bipartite_learn.ensemble._semisupervised_forest.BipartiteExtraTreesRegressorSS
+            params:
+              axis_decision_only: false
+              bipartite_adapter: gmosa
+              bootstrap: false
+              ccp_alpha: 0.0
+              criterion: squared_error_gso
+              max_col_features: null
+              max_depth: null
+              max_features: 1.0
+              max_leaf_nodes: null
+              max_row_features: null
+              max_samples: null
+              min_col_weight_fraction_leaf: 0.0
+              min_cols_leaf: 1
+              min_cols_split: 1
+              min_impurity_decrease: 0.0
+              min_row_weight_fraction_leaf: 0.0
+              min_rows_leaf: 1
+              min_rows_split: 1
+              min_samples_leaf: 1
+              min_samples_split: 2
+              min_weight_fraction_leaf: 0.0
+              n_estimators: 100
+              n_jobs: 3
+              oob_score: false
+              prediction_weights: null
+              preprocess_X_targets: null
+              random_state: null
+              ss_adapter: null
+              supervision: 0.5
+              unsupervised_criterion_cols: mean_distance
+              unsupervised_criterion_rows: mean_distance
+              update_supervision: null
+              verbose: 0
+              warm_start: false
+          estimator__bipartiteextratreesregressorss__axis_decision_only: false
+          estimator__bipartiteextratreesregressorss__bipartite_adapter: gmosa
+          estimator__bipartiteextratreesregressorss__bootstrap: false
+          estimator__bipartiteextratreesregressorss__ccp_alpha: 0.0
+          estimator__bipartiteextratreesregressorss__criterion: squared_error_gso
+          estimator__bipartiteextratreesregressorss__max_col_features: null
+          estimator__bipartiteextratreesregressorss__max_depth: null
+          estimator__bipartiteextratreesregressorss__max_features: 1.0
+          estimator__bipartiteextratreesregressorss__max_leaf_nodes: null
+          estimator__bipartiteextratreesregressorss__max_row_features: null
+          estimator__bipartiteextratreesregressorss__max_samples: null
+          estimator__bipartiteextratreesregressorss__min_col_weight_fraction_leaf: 0.0
+          estimator__bipartiteextratreesregressorss__min_cols_leaf: 1
+          estimator__bipartiteextratreesregressorss__min_cols_split: 1
+          estimator__bipartiteextratreesregressorss__min_impurity_decrease: 0.0
+          estimator__bipartiteextratreesregressorss__min_row_weight_fraction_leaf: 0.0
+          estimator__bipartiteextratreesregressorss__min_rows_leaf: 1
+          estimator__bipartiteextratreesregressorss__min_rows_split: 1
+          estimator__bipartiteextratreesregressorss__min_samples_leaf: 1
+          estimator__bipartiteextratreesregressorss__min_samples_split: 2
+          estimator__bipartiteextratreesregressorss__min_weight_fraction_leaf: 0.0
+          estimator__bipartiteextratreesregressorss__n_estimators: 100
+          estimator__bipartiteextratreesregressorss__n_jobs: 3
+          estimator__bipartiteextratreesregressorss__oob_score: false
+          estimator__bipartiteextratreesregressorss__prediction_weights: null
+          estimator__bipartiteextratreesregressorss__preprocess_X_targets: null
+          estimator__bipartiteextratreesregressorss__random_state: null
+          estimator__bipartiteextratreesregressorss__ss_adapter: null
+          estimator__bipartiteextratreesregressorss__supervision: 0.5
+          estimator__bipartiteextratreesregressorss__unsupervised_criterion_cols: mean_distance
+          estimator__bipartiteextratreesregressorss__unsupervised_criterion_rows: mean_distance
+          estimator__bipartiteextratreesregressorss__update_supervision: null
+          estimator__bipartiteextratreesregressorss__verbose: 0
+          estimator__bipartiteextratreesregressorss__warm_start: false
+          estimator__memory: null
+          estimator__minmaxscaler:
+            call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+            params:
+              ndim: 2
+              transformers:
+                call: sklearn.preprocessing._data.MinMaxScaler
+                params:
+                  clip: true
+                  copy: true
+                  feature_range:
+                  - 0
+                  - 1
+              transformers__clip: true
+              transformers__copy: true
+              transformers__feature_range:
+              - 0
+              - 1
+          estimator__minmaxscaler__ndim: 2
+          estimator__minmaxscaler__transformers:
+            call: sklearn.preprocessing._data.MinMaxScaler
+            params:
+              clip: true
+              copy: true
+              feature_range:
+              - 0
+              - 1
+          estimator__minmaxscaler__transformers__clip: true
+          estimator__minmaxscaler__transformers__copy: true
+          estimator__minmaxscaler__transformers__feature_range:
+          - 0
+          - 1
+          estimator__positivedropper:
+            call: missing_data_simulation.positive_dropper.PositiveDropper
+            params:
+              drop: 0.0
+              random_state:
+                call: numpy.random.mtrand.RandomState
+                params: {}
+          estimator__positivedropper__drop: 0.0
+          estimator__positivedropper__random_state:
+            call: numpy.random.mtrand.RandomState
+            params: {}
+          estimator__similaritydistanceswitcher:
+            call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+            params:
+              ndim: 2
+              transformers:
+                call: bipartite_learn.preprocessing.monopartite.SimilarityDistanceSwitcher
+                params: {}
+          estimator__similaritydistanceswitcher__ndim: 2
+          estimator__similaritydistanceswitcher__transformers:
+            call: bipartite_learn.preprocessing.monopartite.SimilarityDistanceSwitcher
+            params: {}
+          estimator__steps:
+          - - symmetryenforcer
+            - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+              params:
+                ndim: 2
+                samplers:
+                  call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                  params:
+                    sampling_strategy: auto
+                samplers__sampling_strategy: auto
+          - - minmaxscaler
+            - call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+              params:
+                ndim: 2
+                transformers:
+                  call: sklearn.preprocessing._data.MinMaxScaler
+                  params:
+                    clip: true
+                    copy: true
+                    feature_range:
+                    - 0
+                    - 1
+                transformers__clip: true
+                transformers__copy: true
+                transformers__feature_range:
+                - 0
+                - 1
+          - - similaritydistanceswitcher
+            - call: bipartite_learn.wrappers.MultipartiteTransformerWrapper
+              params:
+                ndim: 2
+                transformers:
+                  call: bipartite_learn.preprocessing.monopartite.SimilarityDistanceSwitcher
+                  params: {}
+          - - positivedropper
+            - call: missing_data_simulation.positive_dropper.PositiveDropper
+              params:
+                drop: 0.0
+                random_state:
+                  call: numpy.random.mtrand.RandomState
+                  params: {}
+          - - bipartiteextratreesregressorss
+            - call: bipartite_learn.ensemble._semisupervised_forest.BipartiteExtraTreesRegressorSS
+              params:
+                axis_decision_only: false
+                bipartite_adapter: gmosa
+                bootstrap: false
+                ccp_alpha: 0.0
+                criterion: squared_error_gso
+                max_col_features: null
+                max_depth: null
+                max_features: 1.0
+                max_leaf_nodes: null
+                max_row_features: null
+                max_samples: null
+                min_col_weight_fraction_leaf: 0.0
+                min_cols_leaf: 1
+                min_cols_split: 1
+                min_impurity_decrease: 0.0
+                min_row_weight_fraction_leaf: 0.0
+                min_rows_leaf: 1
+                min_rows_split: 1
+                min_samples_leaf: 1
+                min_samples_split: 2
+                min_weight_fraction_leaf: 0.0
+                n_estimators: 100
+                n_jobs: 3
+                oob_score: false
+                prediction_weights: null
+                preprocess_X_targets: null
+                random_state: null
+                ss_adapter: null
+                supervision: 0.5
+                unsupervised_criterion_cols: mean_distance
+                unsupervised_criterion_rows: mean_distance
+                update_supervision: null
+                verbose: 0
+                warm_start: false
+          estimator__symmetryenforcer:
+            call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+            params:
+              ndim: 2
+              samplers:
+                call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                params:
+                  sampling_strategy: auto
+              samplers__sampling_strategy: auto
+          estimator__symmetryenforcer__ndim: 2
+          estimator__symmetryenforcer__samplers:
+            call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+            params:
+              sampling_strategy: auto
+          estimator__symmetryenforcer__samplers__sampling_strategy: auto
+          estimator__verbose: false
+    verbose: false
+  name: md_ss_bxt_gso__drop90
+  params: {}
+hash: 0f0484fd49576ef314059eb0cf2bc6d12afad1dd3b9068f4811c92a7202b8cb9
+path: /home/pedro/mestrado/biomal_repo/scripts/run_experiments/literature_models2/runs/0f0484f_20230818T162647334643_md_ss_bxt_gso__drop90_ern.yml
+results:
+  LL_average_precision:
+  - 0.11755073734897781
+  - 0.11904216194074933
+  - 0.11824776124456182
+  - 0.11212648542299664
+  - 0.11707217540001573
+  - 0.11935457392663087
+  - 0.11865779362828048
+  - 0.1125156848371946
+  - 0.1172010941396867
+  - 0.11893881827724695
+  - 0.11827843107499672
+  - 0.11201657035511642
+  - 0.11712236665172569
+  - 0.1193172983663681
+  - 0.1185508411617553
+  - 0.1125562471961105
+  LL_balanced_accuracy:
+  - 0.5502092050209205
+  - 0.5500235960358659
+  - 0.5500736377025037
+  - 0.5500741839762612
+  - 0.5500794912559619
+  - 0.5501648610456901
+  - 0.5502194051682107
+  - 0.5501453488372093
+  - 0.5502136752136753
+  - 0.550071530758226
+  - 0.5501482213438735
+  - 0.5501130369253956
+  - 0.55
+  - 0.5501412429378532
+  - 0.5500968054211036
+  - 0.5502199413489736
+  LL_f1_macro:
+  - 0.5869263150151246
+  - 0.5861435721306022
+  - 0.5864550390583527
+  - 0.5880150750063559
+  - 0.5867679904328182
+  - 0.5863693085565117
+  - 0.5866655249422846
+  - 0.5880700084917458
+  - 0.5870252315797547
+  - 0.5862737524723205
+  - 0.5866085416217844
+  - 0.5881268637742644
+  - 0.5865832349231027
+  - 0.5863277483426732
+  - 0.5864276751478756
+  - 0.5882207775958614
+  LL_f1_micro:
+  - 0.9828676726928632
+  - 0.9810050301309826
+  - 0.9818995141604455
+  - 0.9880218825295256
+  - 0.983086807111908
+  - 0.9809751481647493
+  - 0.9817810167081408
+  - 0.987775012837224
+  - 0.9832262562876637
+  - 0.9812042432392052
+  - 0.9820180116127504
+  - 0.9882095034956748
+  - 0.9828776333482743
+  - 0.9809651875093381
+  - 0.9816427696804518
+  - 0.9878836355018367
+  LL_f1_weighted:
+  - 0.9759390715472271
+  - 0.9733263631338508
+  - 0.9745797960748513
+  - 0.9831593454996554
+  - 0.9762422567124828
+  - 0.9732889882645694
+  - 0.9744183188027767
+  - 0.9828144619281908
+  - 0.9764412608576732
+  - 0.9736066386792477
+  - 0.9747478846466097
+  - 0.9834233273191423
+  - 0.9759470977012066
+  - 0.9732743091898997
+  - 0.9742211336307921
+  - 0.9829683195491606
+  LL_matthews_corrcoef:
+  - 0.3141571461786937
+  - 0.3132774763658292
+  - 0.31357758539033465
+  - 0.31455870316115747
+  - 0.313786199868058
+  - 0.313714688411654
+  - 0.31401462921606976
+  - 0.31474270783577457
+  - 0.3142286546313658
+  - 0.31345948930330475
+  - 0.3138300346298245
+  - 0.31471066812965903
+  - 0.3135035878913886
+  - 0.3136392339602798
+  - 0.3136089385190437
+  - 0.3149940759299084
+  LL_precision_macro:
+  - 0.9914174226320569
+  - 0.9904824171765669
+  - 0.9909314889574923
+  - 0.9940029466148537
+  - 0.9915274534459014
+  - 0.9904673494240482
+  - 0.9908719399972294
+  - 0.9938791654306338
+  - 0.991597393395671
+  - 0.990582422518341
+  - 0.9909909464206204
+  - 0.9940969990606615
+  - 0.9914224981038682
+  - 0.9904623585075163
+  - 0.9908025845776314
+  - 0.9939336108611603
+  LL_precision_micro:
+  - 0.9828676726928632
+  - 0.9810050301309826
+  - 0.9818995141604455
+  - 0.9880218825295256
+  - 0.983086807111908
+  - 0.9809751481647493
+  - 0.9817810167081408
+  - 0.987775012837224
+  - 0.9832262562876637
+  - 0.9812042432392052
+  - 0.9820180116127504
+  - 0.9882095034956748
+  - 0.9828776333482743
+  - 0.9809651875093381
+  - 0.9816427696804518
+  - 0.9878836355018367
+  LL_precision_weighted:
+  - 0.983161751742076
+  - 0.9813666025288966
+  - 0.982227803071867
+  - 0.9881655493493736
+  - 0.9833734027401535
+  - 0.9813378626943587
+  - 0.9821136246534958
+  - 0.9879246670852959
+  - 0.9835081426270568
+  - 0.9815582642304476
+  - 0.9823420130064394
+  - 0.9883487021195555
+  - 0.9831713676131173
+  - 0.9813282819441631
+  - 0.9819804478269578
+  - 0.9880306406658245
+  LL_recall_macro:
+  - 0.5502092050209205
+  - 0.5500235960358659
+  - 0.5500736377025037
+  - 0.5500741839762612
+  - 0.5500794912559619
+  - 0.5501648610456901
+  - 0.5502194051682107
+  - 0.5501453488372093
+  - 0.5502136752136753
+  - 0.550071530758226
+  - 0.5501482213438735
+  - 0.5501130369253956
+  - 0.55
+  - 0.5501412429378532
+  - 0.5500968054211036
+  - 0.5502199413489736
+  LL_recall_micro:
+  - 0.9828676726928632
+  - 0.9810050301309826
+  - 0.9818995141604455
+  - 0.9880218825295256
+  - 0.983086807111908
+  - 0.9809751481647493
+  - 0.9817810167081408
+  - 0.987775012837224
+  - 0.9832262562876637
+  - 0.9812042432392052
+  - 0.9820180116127504
+  - 0.9882095034956748
+  - 0.9828776333482743
+  - 0.9809651875093381
+  - 0.9816427696804518
+  - 0.9878836355018367
+  LL_recall_weighted:
+  - 0.9828676726928632
+  - 0.9810050301309826
+  - 0.9818995141604455
+  - 0.9880218825295256
+  - 0.983086807111908
+  - 0.9809751481647493
+  - 0.9817810167081408
+  - 0.987775012837224
+  - 0.9832262562876637
+  - 0.9812042432392052
+  - 0.9820180116127504
+  - 0.9882095034956748
+  - 0.9828776333482743
+  - 0.9809651875093381
+  - 0.9816427696804518
+  - 0.9878836355018367
+  LL_roc_auc:
+  - 0.5502092050209205
+  - 0.5500235960358659
+  - 0.5500736377025037
+  - 0.5500741839762612
+  - 0.5500794912559619
+  - 0.5501648610456901
+  - 0.5502194051682107
+  - 0.5501453488372093
+  - 0.5502136752136753
+  - 0.550071530758226
+  - 0.5501482213438735
+  - 0.5501130369253956
+  - 0.55
+  - 0.5501412429378532
+  - 0.5500968054211036
+  - 0.5502199413489736
+  LT_average_precision:
+  - 0.022953966096497604
+  - 0.039480035723010974
+  - 0.021192617422186366
+  - 0.036646381389202336
+  - 0.02380382117284471
+  - 0.05231736445712125
+  - 0.01831880751955549
+  - 0.03452929077082178
+  - 0.019966988212965487
+  - 0.0338973837544861
+  - 0.01421761285522116
+  - 0.03684620955573188
+  - 0.029985337808183327
+  - 0.04487941778952668
+  - 0.01645432129734334
+  - 0.03468394492540972
+  LT_balanced_accuracy:
+  - 0.5157666461185364
+  - 0.5155763225469822
+  - 0.5288985718814743
+  - 0.5087915900977676
+  - 0.514994880173852
+  - 0.5293676936360493
+  - 0.5111115090892174
+  - 0.5074026031261724
+  - 0.5099599170638395
+  - 0.5111698293979692
+  - 0.5123580352656074
+  - 0.5030312836102272
+  - 0.5182728095957412
+  - 0.5250036050402704
+  - 0.5114989540814555
+  - 0.5002776744521739
+  LT_f1_macro:
+  - 0.5171529919766662
+  - 0.5112592434836838
+  - 0.5146105496724424
+  - 0.5101744984095169
+  - 0.5162848966200451
+  - 0.5190893975629521
+  - 0.5044322512460263
+  - 0.5083510751040531
+  - 0.5107976407074895
+  - 0.5060751549059778
+  - 0.506872487299976
+  - 0.5029060915408737
+  - 0.5188092812991365
+  - 0.5173422611491572
+  - 0.5068927568523628
+  - 0.4991372413952134
+  LT_f1_micro:
+  - 0.9713924868564043
+  - 0.9733016124768702
+  - 0.9566226562971002
+  - 0.9515885934768192
+  - 0.969688959379681
+  - 0.9706582077716098
+  - 0.9566829444745886
+  - 0.9497498040634231
+  - 0.9705700942814345
+  - 0.9691896496020207
+  - 0.9626514740459395
+  - 0.9480014469162598
+  - 0.9688078244779276
+  - 0.971568713836755
+  - 0.9637969494182191
+  - 0.9492373545547718
+  LT_f1_weighted:
+  - 0.9700719832223174
+  - 0.9766094919310565
+  - 0.9656564192242935
+  - 0.9436551380656641
+  - 0.9683134654538865
+  - 0.9753529247303139
+  - 0.9656306326085794
+  - 0.9432200293373038
+  - 0.9692328580726577
+  - 0.9747102755549312
+  - 0.9690680784747778
+  - 0.9417201165212008
+  - 0.968343133499398
+  - 0.9755568960790089
+  - 0.9694773103128624
+  - 0.9417662193770406
+  LT_matthews_corrcoef:
+  - 0.03459256098478914
+  - 0.024181824330183576
+  - 0.03701448303328981
+  - 0.024737861329048157
+  - 0.032847565912835976
+  - 0.04213163393989284
+  - 0.014292125372995767
+  - 0.019327071352945518
+  - 0.021820621408730548
+  - 0.015340219586350337
+  - 0.01725897376483529
+  - 0.007760449465426088
+  - 0.03765124257666127
+  - 0.037469000420831296
+  - 0.016609280537245173
+  - 0.0007527359069946789
+  LT_precision_macro:
+  - 0.5189743155660653
+  - 0.5093854089463683
+  - 0.5118524192115874
+  - 0.5174019084241259
+  - 0.5179888497588596
+  - 0.5151107761511974
+  - 0.5045957944604402
+  - 0.5126150112573639
+  - 0.5119513926574706
+  - 0.5052669187812356
+  - 0.5060258805103967
+  - 0.504966920259642
+  - 0.5193951573256829
+  - 0.5140372357333584
+  - 0.5059976802674995
+  - 0.5005101399689846
+  LT_precision_micro:
+  - 0.9713924868564043
+  - 0.9733016124768702
+  - 0.9566226562971002
+  - 0.9515885934768192
+  - 0.969688959379681
+  - 0.9706582077716098
+  - 0.9566829444745886
+  - 0.9497498040634231
+  - 0.9705700942814345
+  - 0.9691896496020207
+  - 0.9626514740459395
+  - 0.9480014469162598
+  - 0.9688078244779276
+  - 0.971568713836755
+  - 0.9637969494182191
+  - 0.9492373545547718
+  LT_precision_weighted:
+  - 0.9687696936293219
+  - 0.9799921008230367
+  - 0.9751822398762248
+  - 0.9362570279555873
+  - 0.9669565992815603
+  - 0.9802298803524424
+  - 0.9749329214935732
+  - 0.9370049499249307
+  - 0.9679100697908507
+  - 0.9803836101983411
+  - 0.97569211082863
+  - 0.9356709640797402
+  - 0.9678806100185583
+  - 0.979674283869437
+  - 0.9753232247767195
+  - 0.9345838915573504
+  LT_recall_macro:
+  - 0.5157666461185364
+  - 0.5155763225469822
+  - 0.5288985718814743
+  - 0.5087915900977676
+  - 0.514994880173852
+  - 0.5293676936360493
+  - 0.5111115090892174
+  - 0.5074026031261724
+  - 0.5099599170638395
+  - 0.5111698293979692
+  - 0.5123580352656074
+  - 0.5030312836102272
+  - 0.5182728095957412
+  - 0.5250036050402704
+  - 0.5114989540814555
+  - 0.5002776744521739
+  LT_recall_micro:
+  - 0.9713924868564043
+  - 0.9733016124768702
+  - 0.9566226562971002
+  - 0.9515885934768192
+  - 0.969688959379681
+  - 0.9706582077716098
+  - 0.9566829444745886
+  - 0.9497498040634231
+  - 0.9705700942814345
+  - 0.9691896496020207
+  - 0.9626514740459395
+  - 0.9480014469162598
+  - 0.9688078244779276
+  - 0.971568713836755
+  - 0.9637969494182191
+  - 0.9492373545547718
+  LT_recall_weighted:
+  - 0.9713924868564043
+  - 0.9733016124768702
+  - 0.9566226562971002
+  - 0.9515885934768192
+  - 0.969688959379681
+  - 0.9706582077716098
+  - 0.9566829444745886
+  - 0.9497498040634231
+  - 0.9705700942814345
+  - 0.9691896496020207
+  - 0.9626514740459395
+  - 0.9480014469162598
+  - 0.9688078244779276
+  - 0.971568713836755
+  - 0.9637969494182191
+  - 0.9492373545547718
+  LT_roc_auc:
+  - 0.5158863887478724
+  - 0.5159401199699143
+  - 0.5294353846321287
+  - 0.5087760311124189
+  - 0.5150703900358287
+  - 0.5297763147494796
+  - 0.5116260900239796
+  - 0.507422391496338
+  - 0.510043556839709
+  - 0.5114277773433471
+  - 0.5125588816824544
+  - 0.5030860842453485
+  - 0.5185138269251067
+  - 0.525448362610284
+  - 0.5117002731427566
+  - 0.5002980774035232
+  TL_average_precision:
+  - 0.07589107351883227
+  - 0.07814033058397787
+  - 0.07225175999184286
+  - 0.08689806633069849
+  - 0.07283220103138606
+  - 0.07281260211149107
+  - 0.0806021089838687
+  - 0.03884671678100379
+  - 0.0587378736327479
+  - 0.07746643694230376
+  - 0.0924759611680758
+  - 0.051274019492315456
+  - 0.08602204732565115
+  - 0.11312380810166026
+  - 0.07700414023710024
+  - 0.04961053517294788
+  TL_balanced_accuracy:
+  - 0.5688265211419238
+  - 0.5698822885206916
+  - 0.5715554069467879
+  - 0.5658195884868635
+  - 0.5614774133663366
+  - 0.5690069408184889
+  - 0.5769169278101898
+  - 0.5496072925184456
+  - 0.5586165779842768
+  - 0.5739035281257335
+  - 0.5797798370860632
+  - 0.5576587469928114
+  - 0.5737011684288558
+  - 0.5955476035688666
+  - 0.579392456105654
+  - 0.5545144727559341
+  TL_f1_macro:
+  - 0.589342523757016
+  - 0.5934346395055407
+  - 0.5925096315688901
+  - 0.5821579831974313
+  - 0.582028538924795
+  - 0.5891410158040139
+  - 0.5946697948416275
+  - 0.5571271537203588
+  - 0.5795847610487365
+  - 0.5917477868271581
+  - 0.600557937533187
+  - 0.567945754611173
+  - 0.5917701065963592
+  - 0.6143357235286115
+  - 0.596114821293967
+  - 0.5607730479151961
+  TL_f1_micro:
+  - 0.9773494695950994
+  - 0.9752876139249963
+  - 0.9749970375636924
+  - 0.9821957577912075
+  - 0.9767518302704318
+  - 0.974241745106828
+  - 0.9743156772129399
+  - 0.980744164000474
+  - 0.9765426565067982
+  - 0.9723292992678918
+  - 0.9743453015760161
+  - 0.9795888138405024
+  - 0.9763932466756312
+  - 0.9737935156133274
+  - 0.9745230477544733
+  - 0.9797073112928072
+  TL_f1_weighted:
+  - 0.9738426282511787
+  - 0.9709194758666089
+  - 0.9711843267529565
+  - 0.9799308674267088
+  - 0.9726736338468244
+  - 0.9703193018008641
+  - 0.9712593587745533
+  - 0.979255717487101
+  - 0.9721113964031239
+  - 0.9688663620434923
+  - 0.9708883350806117
+  - 0.9777273061824501
+  - 0.9734093772269972
+  - 0.9711566610657206
+  - 0.97176669230679
+  - 0.9785254965540042
+  TL_matthews_corrcoef:
+  - 0.1896863512742749
+  - 0.2023981649848834
+  - 0.1961997406742723
+  - 0.17078327425302614
+  - 0.17749549527008923
+  - 0.18912572163205044
+  - 0.1961262251541314
+  - 0.11595179974762498
+  - 0.17461856771266296
+  - 0.1909365351159263
+  - 0.21041986129560533
+  - 0.1386887083083383
+  - 0.19091541137916251
+  - 0.23438098052831313
+  - 0.19786501574573656
+  - 0.12256491118194913
+  TL_precision_macro:
+  - 0.6306942122846554
+  - 0.6465500703268993
+  - 0.6344913678894943
+  - 0.610783611061339
+  - 0.628114738064213
+  - 0.62958311931595
+  - 0.6250228567635056
+  - 0.5677562671844775
+  - 0.6300470158723734
+  - 0.6233255074779744
+  - 0.6387459527521285
+  - 0.5833982648575133
+  - 0.6236367586806274
+  - 0.6437357976064233
+  - 0.6232817523744312
+  - 0.5688906848659003
+  TL_precision_micro:
+  - 0.9773494695950994
+  - 0.9752876139249963
+  - 0.9749970375636924
+  - 0.9821957577912075
+  - 0.9767518302704318
+  - 0.974241745106828
+  - 0.9743156772129399
+  - 0.980744164000474
+  - 0.9765426565067982
+  - 0.9723292992678918
+  - 0.9743453015760161
+  - 0.9795888138405024
+  - 0.9763932466756312
+  - 0.9737935156133274
+  - 0.9745230477544733
+  - 0.9797073112928072
+  TL_precision_weighted:
+  - 0.9711393946080921
+  - 0.9678516093720655
+  - 0.9682755814139019
+  - 0.9780137929887939
+  - 0.9696214128262775
+  - 0.9672914963053987
+  - 0.9687366652016316
+  - 0.9778521268117838
+  - 0.9688921642741838
+  - 0.9660353495800381
+  - 0.9681946156101943
+  - 0.976021686412956
+  - 0.9709620791195144
+  - 0.9689864067383767
+  - 0.9694431116642661
+  - 0.9773960017793345
+  TL_recall_macro:
+  - 0.5688265211419238
+  - 0.5698822885206916
+  - 0.5715554069467879
+  - 0.5658195884868635
+  - 0.5614774133663366
+  - 0.5690069408184889
+  - 0.5769169278101898
+  - 0.5496072925184456
+  - 0.5586165779842768
+  - 0.5739035281257335
+  - 0.5797798370860632
+  - 0.5576587469928114
+  - 0.5737011684288558
+  - 0.5955476035688666
+  - 0.579392456105654
+  - 0.5545144727559341
+  TL_recall_micro:
+  - 0.9773494695950994
+  - 0.9752876139249963
+  - 0.9749970375636924
+  - 0.9821957577912075
+  - 0.9767518302704318
+  - 0.974241745106828
+  - 0.9743156772129399
+  - 0.980744164000474
+  - 0.9765426565067982
+  - 0.9723292992678918
+  - 0.9743453015760161
+  - 0.9795888138405024
+  - 0.9763932466756312
+  - 0.9737935156133274
+  - 0.9745230477544733
+  - 0.9797073112928072
+  TL_recall_weighted:
+  - 0.9773494695950994
+  - 0.9752876139249963
+  - 0.9749970375636924
+  - 0.9821957577912075
+  - 0.9767518302704318
+  - 0.974241745106828
+  - 0.9743156772129399
+  - 0.980744164000474
+  - 0.9765426565067982
+  - 0.9723292992678918
+  - 0.9743453015760161
+  - 0.9795888138405024
+  - 0.9763932466756312
+  - 0.9737935156133274
+  - 0.9745230477544733
+  - 0.9797073112928072
+  TL_roc_auc:
+  - 0.568999641137964
+  - 0.5699591158569274
+  - 0.5716263804108324
+  - 0.5660364748995622
+  - 0.5616083396801218
+  - 0.5690819254083905
+  - 0.5770942031176003
+  - 0.5496717802955988
+  - 0.558672765471335
+  - 0.5741140368210503
+  - 0.5799786829011734
+  - 0.5578474074495043
+  - 0.5738882686206137
+  - 0.595841307893203
+  - 0.5794906095032998
+  - 0.5546591781942654
+  TT_average_precision:
+  - 0.020273923422651316
+  - 0.01618332307544431
+  - 0.026448532170039556
+  - 0.033330916566374956
+  - 0.017400935371603376
+  - 0.025279771906583183
+  - 0.014410605808686689
+  - 0.03572065004162646
+  - 0.02471527242432168
+  - 0.020176377984071438
+  - 0.018342640189187093
+  - 0.036317191478493
+  - 0.020506178786892024
+  - 0.020601445172955816
+  - 0.017571537794447152
+  - 0.03423244855381999
+  TT_balanced_accuracy:
+  - 0.5147142748854477
+  - 0.5235346498350008
+  - 0.5639862379977701
+  - 0.5039757325151004
+  - 0.5113353390418884
+  - 0.5397504888613291
+  - 0.5167133259231977
+  - 0.501215349814619
+  - 0.5067971890005788
+  - 0.5133617294698006
+  - 0.5311380321404869
+  - 0.5011405036038566
+  - 0.5183691978336419
+  - 0.5268066304895769
+  - 0.5297876306967015
+  - 0.5052332416041038
+  TT_f1_macro:
+  - 0.51412685388167
+  - 0.5216950628031339
+  - 0.5321676387146547
+  - 0.5036094530302692
+  - 0.5125301527740552
+  - 0.5218638465681978
+  - 0.5074545567787829
+  - 0.5010684617736527
+  - 0.507793910610812
+  - 0.5060462495398929
+  - 0.5173220738930088
+  - 0.5010684617736528
+  - 0.5154512200279106
+  - 0.5157394975194575
+  - 0.5203767419596245
+  - 0.5056300220230557
+  TT_f1_micro:
+  - 0.9639615825182836
+  - 0.9785003083972156
+  - 0.9592150479291011
+  - 0.9542412732863086
+  - 0.9735659529473962
+  - 0.967133668164596
+  - 0.9573159703382167
+  - 0.9409477301501176
+  - 0.9715393426733633
+  - 0.962023085734426
+  - 0.9575872671369144
+  - 0.9409477301501176
+  - 0.9629923341263547
+  - 0.9709225482421359
+  - 0.9650931452342194
+  - 0.9438415626695605
+  TT_f1_weighted:
+  - 0.9646618746782492
+  - 0.979324048809431
+  - 0.9684714470497928
+  - 0.9454305144620162
+  - 0.9720621667005684
+  - 0.9738419881576024
+  - 0.9663404422983416
+  - 0.9369230233702115
+  - 0.9688872037645088
+  - 0.969842937932553
+  - 0.9657163943675328
+  - 0.9377703300607183
+  - 0.9657004769273538
+  - 0.9763005175772215
+  - 0.9701049754739782
+  - 0.9404321750226134
+  TT_matthews_corrcoef:
+  - 0.028306200388862335
+  - 0.04359040348820379
+  - 0.07820770424564122
+  - 0.011954354833046335
+  - 0.025415647631452938
+  - 0.05145903155162042
+  - 0.02124243272765653
+  - 0.002788292893250843
+  - 0.01641729811843068
+  - 0.017218432141625255
+  - 0.041513462415222885
+  - 0.0025413384559516672
+  - 0.03170079503982886
+  - 0.03632632991940181
+  - 0.04431267929670003
+  - 0.011825505258767407
+  TT_precision_macro:
+  - 0.5136133276476785
+  - 0.5201843164184086
+  - 0.5238975020049891
+  - 0.5089861804668447
+  - 0.5142464892787751
+  - 0.5166540840382392
+  - 0.5067497180133773
+  - 0.501599246810473
+  - 0.5099132037334284
+  - 0.5055470814254589
+  - 0.5138365163373582
+  - 0.5014156906488195
+  - 0.5136769772863565
+  - 0.5123066776886257
+  - 0.5164801085259664
+  - 0.5066804948636174
+  TT_precision_micro:
+  - 0.9639615825182836
+  - 0.9785003083972156
+  - 0.9592150479291011
+  - 0.9542412732863086
+  - 0.9735659529473962
+  - 0.967133668164596
+  - 0.9573159703382167
+  - 0.9409477301501176
+  - 0.9715393426733633
+  - 0.962023085734426
+  - 0.9575872671369144
+  - 0.9409477301501176
+  - 0.9629923341263548
+  - 0.9709225482421359
+  - 0.9650931452342195
+  - 0.9438415626695605
+  TT_precision_weighted:
+  - 0.9653659520189348
+  - 0.9801562238230264
+  - 0.9785044670499644
+  - 0.9371639042450108
+  - 0.9705793186672426
+  - 0.9809149106566418
+  - 0.9757632560649193
+  - 0.9329809223781638
+  - 0.9662893297203502
+  - 0.9779531058530743
+  - 0.9742825008636969
+  - 0.9346434840299039
+  - 0.9684631972481036
+  - 0.9818891744119063
+  - 0.9753198861926143
+  - 0.9370916491178485
+  TT_recall_macro:
+  - 0.5147142748854477
+  - 0.5235346498350008
+  - 0.5639862379977701
+  - 0.5039757325151004
+  - 0.5113353390418884
+  - 0.5397504888613291
+  - 0.5167133259231977
+  - 0.501215349814619
+  - 0.5067971890005788
+  - 0.5133617294698006
+  - 0.5311380321404869
+  - 0.5011405036038566
+  - 0.5183691978336419
+  - 0.5268066304895769
+  - 0.5297876306967015
+  - 0.5052332416041038
+  TT_recall_micro:
+  - 0.9639615825182836
+  - 0.9785003083972156
+  - 0.9592150479291011
+  - 0.9542412732863086
+  - 0.9735659529473962
+  - 0.967133668164596
+  - 0.9573159703382167
+  - 0.9409477301501176
+  - 0.9715393426733633
+  - 0.962023085734426
+  - 0.9575872671369144
+  - 0.9409477301501176
+  - 0.9629923341263548
+  - 0.9709225482421359
+  - 0.9650931452342195
+  - 0.9438415626695605
+  TT_recall_weighted:
+  - 0.9639615825182836
+  - 0.9785003083972156
+  - 0.9592150479291011
+  - 0.9542412732863086
+  - 0.9735659529473962
+  - 0.967133668164596
+  - 0.9573159703382167
+  - 0.9409477301501176
+  - 0.9715393426733633
+  - 0.962023085734426
+  - 0.9575872671369144
+  - 0.9409477301501176
+  - 0.9629923341263548
+  - 0.9709225482421359
+  - 0.9650931452342195
+  - 0.9438415626695605
+  TT_roc_auc:
+  - 0.5147937797162918
+  - 0.5236124725936679
+  - 0.5648616172710078
+  - 0.5039655850975282
+  - 0.511385224613644
+  - 0.5400505591591279
+  - 0.5169047288041899
+  - 0.501272296521992
+  - 0.5068655798410978
+  - 0.5133755475410743
+  - 0.5314914111297381
+  - 0.5011899279228682
+  - 0.518335836985552
+  - 0.5269145357438213
+  - 0.5298309197824803
+  - 0.5052286174644507
+  fit_time:
+  - 339.23625135421753
+  - 384.86547470092773
+  - 320.6275715827942
+  - 221.23835158348083
+  - 341.3367438316345
+  - 349.07284569740295
+  - 271.439172744751
+  - 269.39735770225525
+  - 313.51480507850647
+  - 324.358722448349
+  - 325.71734976768494
+  - 176.9689061641693
+  - 329.4072425365448
+  - 377.9854242801666
+  - 265.1987657546997
+  - 186.90773177146912
+  score_time:
+  - 7.728640079498291
+  - 7.215480089187622
+  - 8.230539321899414
+  - 10.233333587646484
+  - 8.023484706878662
+  - 6.852115869522095
+  - 9.192733526229858
+  - 8.650953531265259
+  - 8.716222763061523
+  - 8.150254011154175
+  - 8.291682004928589
+  - 12.576098680496216
+  - 7.71028733253479
+  - 7.093833684921265
+  - 10.197640419006348
+  - 13.38846731185913
+start: 2023-08-18 16:26:47.334643
+wrapper:
+  call: bipartite_positive_dropper.wrap_estimator
+  name: drop90
+  params:
+    drop: 0.9
+    random_state: 0

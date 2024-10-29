@@ -1,0 +1,279 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 4
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/davis/binary/X1.txt
+    read:
+      call: numpy.loadtxt
+      params: {}
+  - force_download: false
+    path: datasets/davis/binary/X2.txt
+    read:
+      call: numpy.loadtxt
+      params: {}
+  name: davis
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/davis/binary/y100.txt
+    read:
+      call: numpy.loadtxt
+      params: {}
+directory: literature_models/runs
+end: 2023-12-02 20:22:37.776252
+estimator:
+  call: literature_models.estimators.kron_rls
+  final_params:
+    memory: null
+    steps:
+    - - dropper
+      - call: bipartite_positive_dropper.BipartitePositiveDropper
+        params:
+          drop: 0.9
+          random_state: 0
+    - - estimator
+      - call: bipartite_learn.model_selection._search.MultipartiteGridSearchCV
+        params:
+          cv:
+            call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+            params: {}
+          diagonal: false
+          error_score: .nan
+          estimator:
+            call: imblearn.pipeline.Pipeline
+            params:
+              memory: null
+              steps:
+              - - targetkernellinearcombiner
+                - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+                  params:
+                    ndim: 2
+                    samplers:
+                      call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                      params:
+                        alpha: 0.5
+                        filter_params: false
+                        gamma: 1.0
+                        gamma_scale: squares
+                        metric: rbf
+                        n_jobs: null
+              - - kronrlsregressor
+                - call: literature_models.kron_rls.kron_rls.KronRLSRegressor
+                  params:
+                    alpha: 1.0
+              verbose: false
+          n_jobs: 4
+          pairwise: true
+          param_grid:
+            targetkernellinearcombiner__samplers__alpha:
+            - 0.0
+            - 0.1
+            - 0.25
+            - 0.5
+            - 0.75
+            - 0.9
+            - 1.0
+          pre_dispatch: 2*n_jobs
+          refit: true
+          return_train_score: false
+          scoring: average_precision
+          train_test_combinations: null
+          verbose: 0
+    verbose: false
+  name: kron_rls
+  params: {}
+hash: 21d9fe982bb42020f51a3c8dcc607ac5965d514e0b177377d535a2e49840c5fd
+path: /home/pedro/master_thesis/experiments/literature_models/runs/21d9fe9_20231202T202232015036_kron_rls_davis.yml
+results:
+  LL_average_precision:
+  - 0.40059034035145585
+  - 0.285820391694636
+  - 0.23592711328349075
+  - 0.41952637118428454
+  - 0.23386795604981966
+  - 0.3763816101384788
+  - 0.2926646242583555
+  - 0.37081538495621025
+  - 0.36883176426912384
+  - 0.20408685391351308
+  - 0.33275225942064524
+  - 0.3598295077066679
+  - 0.40191733258972995
+  - 0.2772105527388228
+  - 0.4100524049131206
+  - 0.42725375795006226
+  LL_roc_auc:
+  - 0.787320578809362
+  - 0.8001263463371525
+  - 0.8082270670243477
+  - 0.8066644319105728
+  - 0.795097575360507
+  - 0.8229793020510386
+  - 0.8155886802898562
+  - 0.8137129576648936
+  - 0.8051027893340599
+  - 0.7493925695709389
+  - 0.8150071052605234
+  - 0.8016307852818716
+  - 0.8287659328725681
+  - 0.8272701029498237
+  - 0.8230684202109145
+  - 0.7832594529371806
+  LT_average_precision:
+  - 0.3629410294140382
+  - 0.20376439868468732
+  - 0.17487011245570305
+  - 0.1998293037077123
+  - 0.2701830331833496
+  - 0.2403891396509955
+  - 0.2878617742238068
+  - 0.26116452818465524
+  - 0.26852036391920814
+  - 0.1747044585639948
+  - 0.19778548516779515
+  - 0.22129965047758354
+  - 0.2853740649483884
+  - 0.2439645433745753
+  - 0.3902576474267944
+  - 0.26590434558192444
+  LT_roc_auc:
+  - 0.7834247078187352
+  - 0.7675201579439334
+  - 0.7565184667908131
+  - 0.7073585820895523
+  - 0.8047005409016907
+  - 0.8067607752563387
+  - 0.7976405206454442
+  - 0.8067830980816156
+  - 0.7811610007365064
+  - 0.7122892515879509
+  - 0.7706741586552923
+  - 0.7591827553889409
+  - 0.8003067200288232
+  - 0.8000319594149072
+  - 0.8281011794847289
+  - 0.7379693746249072
+  TL_average_precision:
+  - 0.23891638126648468
+  - 0.2515474128629738
+  - 0.16094673570525195
+  - 0.2501949076050305
+  - 0.093527287724497
+  - 0.10216834847456216
+  - 0.13279350336883708
+  - 0.13192677340190842
+  - 0.27496987918297866
+  - 0.12714151257163758
+  - 0.2147761466429369
+  - 0.2749862848864513
+  - 0.07847724809909845
+  - 0.11174418657739288
+  - 0.11402894484383279
+  - 0.15963565993622286
+  TL_roc_auc:
+  - 0.7144338643286673
+  - 0.7548241619384034
+  - 0.695443666769151
+  - 0.7175837578204672
+  - 0.6422843002802456
+  - 0.6203630393071387
+  - 0.7092689572004423
+  - 0.6716311027241496
+  - 0.7867175419600059
+  - 0.6791889852885704
+  - 0.7997433145299178
+  - 0.7696054646469639
+  - 0.6782604631161716
+  - 0.6972189996510191
+  - 0.7559806602530311
+  - 0.7711301856038698
+  TT_average_precision:
+  - 0.2483377603447012
+  - 0.2677471065525591
+  - 0.12279888238464118
+  - 0.21389431937483153
+  - 0.12166436744470183
+  - 0.10109425317269899
+  - 0.05649172230852337
+  - 0.10824415906817575
+  - 0.2139088100626239
+  - 0.08994073305924653
+  - 0.18597249008536515
+  - 0.24032311935356968
+  - 0.0879212971004884
+  - 0.0936005302388716
+  - 0.06449342989354703
+  - 0.11298291408371015
+  TT_roc_auc:
+  - 0.7732373500438481
+  - 0.7430629491615652
+  - 0.6747978628311393
+  - 0.6638853868194842
+  - 0.6999216335060299
+  - 0.60027961736571
+  - 0.6251360301889157
+  - 0.680190089956079
+  - 0.7624622109075931
+  - 0.6754070670900615
+  - 0.7552759386706158
+  - 0.7338333333333332
+  - 0.6879829235799928
+  - 0.7035554823974814
+  - 0.658095035158747
+  - 0.6790351193378991
+  fit_time:
+  - 1.4409897327423096
+  - 1.1485016345977783
+  - 1.4721770286560059
+  - 1.3046188354492188
+  - 1.254856824874878
+  - 1.299231767654419
+  - 1.286522388458252
+  - 1.2782728672027588
+  - 1.2070553302764893
+  - 1.2162861824035645
+  - 1.3259902000427246
+  - 1.2497730255126953
+  - 1.2896690368652344
+  - 1.340224027633667
+  - 1.2948427200317383
+  - 1.3841564655303955
+  score_time:
+  - 0.03198671340942383
+  - 0.03868579864501953
+  - 0.03490757942199707
+  - 0.03559589385986328
+  - 0.03833603858947754
+  - 0.034102439880371094
+  - 0.03504753112792969
+  - 0.03430581092834473
+  - 0.034630775451660156
+  - 0.038362741470336914
+  - 0.03638863563537598
+  - 0.03580307960510254
+  - 0.03585934638977051
+  - 0.03852438926696777
+  - 0.035402536392211914
+  - 0.03534817695617676
+start: 2023-12-02 20:22:32.015036
+wrapper:
+  call: bipartite_positive_dropper.wrap_estimator
+  name: drop90
+  params:
+    drop: 0.9
+    random_state: 0

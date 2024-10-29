@@ -1,0 +1,107 @@
+defaults:
+  runs:
+    directory: bipartite_adaptations/runs
+
+aliases:
+  dataset: []  # Necessary for correct defaults merging
+  estimator:
+  - name: bxt_lmo
+    call: bipartite_adaptations.estimators.bxt_lmo
+  - name: brf_lmo
+    call: bipartite_adaptations.estimators.brf_lmo
+
+  - name: bxt_lso
+    call: bipartite_adaptations.estimators.bxt_lso
+  - name: brf_lso
+    call: bipartite_adaptations.estimators.brf_lso
+  
+  - name: bxt_sgso
+    call: bipartite_adaptations.estimators.bxt_sgso
+  - name: brf_sgso
+    call: bipartite_adaptations.estimators.brf_sgso
+  
+  - name: bxt_sgso_us
+    call: bipartite_adaptations.estimators.bxt_sgso_us
+  - name: brf_sgso_us
+    call: bipartite_adaptations.estimators.brf_sgso_us
+  
+  - name: bxt_gso
+    call: bipartite_adaptations.estimators.bxt_gso
+  - name: brf_gso
+    call: bipartite_adaptations.estimators.brf_gso
+  
+  - name: bxt_gmo
+    call: bipartite_adaptations.estimators.bxt_gmo
+  - name: brf_gmo
+    call: bipartite_adaptations.estimators.brf_gmo
+  
+  - name: bxt_gmosa
+    call: bipartite_adaptations.estimators.bxt_gmosa
+  - name: brf_gmosa
+    call: bipartite_adaptations.estimators.brf_gmosa
+
+
+runs:
+  # Slightly different than the run at "../prediction_weights". Bootstrap for RF
+  # only.
+  - estimator:
+    - brf_gmo
+
+    - bxt_sgso_us
+    - brf_sgso_us
+
+    - bxt_gso
+    - brf_gso
+
+    - bxt_lmo
+    - brf_lmo
+
+    - bxt_gmosa
+    - brf_gmosa
+
+    - bxt_lso
+    - brf_lso
+
+    - bxt_sgso
+    - brf_sgso
+    dataset:
+    - nuclear_receptors
+    - gpcr
+    - davis
+    - ion_channels
+    - enzymes
+    - ern
+    - srn
+    - lncrna
+    - kiba
+    - mirna
+    wrapper: regressor_to_classifier
+    active: false
+
+  - estimator:
+    - bxt_gmo
+    dataset:
+    - nuclear_receptors
+    - gpcr
+    - davis
+    - ion_channels
+    - enzymes
+    - ern
+    - srn
+    - lncrna
+    - kiba
+    # - mirna  # The only difference from the above
+    wrapper: regressor_to_classifier
+    active: false
+
+
+  # Largest dataset does not fit in memory with 16 jobs.
+  - estimator:  
+    - bxt_gmo
+    dataset:
+    - mirna
+    wrapper: regressor_to_classifier
+    cv:
+      params:
+        n_jobs: 4  # Limit memory usage
+    active: true

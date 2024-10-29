@@ -1,0 +1,311 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 4
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/kiba/final/ligand_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  - force_download: false
+    path: datasets/kiba/final/normalized_target_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  name: kiba
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/kiba/final/binary_affinity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+directory: literature_models/runs
+end: 2023-12-02 09:38:15.847185
+estimator:
+  call: literature_models.estimators.mlp
+  final_params:
+    memory: null
+    steps:
+    - - dropper
+      - call: bipartite_positive_dropper.BipartitePositiveDropper
+        params:
+          drop: 0.5
+          random_state: 0
+    - - estimator
+      - call: bipartite_learn.model_selection._search.MultipartiteGridSearchCV
+        params:
+          cv:
+            call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+            params: {}
+          diagonal: false
+          error_score: .nan
+          estimator:
+            call: bipartite_learn.wrappers.GlobalSingleOutputWrapper
+            params:
+              estimator:
+                call: sklearn.neural_network._multilayer_perceptron.MLPRegressor
+                params:
+                  activation: relu
+                  alpha: 0.0001
+                  batch_size: auto
+                  beta_1: 0.9
+                  beta_2: 0.999
+                  early_stopping: false
+                  epsilon: 1.0e-08
+                  hidden_layer_sizes:
+                  - 100
+                  learning_rate: constant
+                  learning_rate_init: 0.001
+                  max_fun: 15000
+                  max_iter: 200
+                  momentum: 0.9
+                  n_iter_no_change: 10
+                  nesterovs_momentum: true
+                  power_t: 0.5
+                  random_state: null
+                  shuffle: true
+                  solver: adam
+                  tol: 0.0001
+                  validation_fraction: 0.1
+                  verbose: false
+                  warm_start: false
+              under_sampler:
+                call: imblearn.under_sampling._prototype_selection._random_under_sampler.RandomUnderSampler
+                params:
+                  random_state: null
+                  replacement: false
+                  sampling_strategy: auto
+          n_jobs: 4
+          pairwise: true
+          param_grid:
+            estimator__hidden_layer_sizes:
+            - - 100
+              - 100
+              - 100
+              - 100
+              - 100
+            - - 100
+              - 100
+              - 100
+              - 100
+              - 100
+              - 100
+              - 100
+              - 100
+              - 100
+              - 100
+            - - 200
+              - 100
+              - 100
+              - 100
+              - 50
+            - - 1024
+              - 512
+              - 256
+              - 128
+              - 64
+              - 32
+          pre_dispatch: 2*n_jobs
+          refit: true
+          return_train_score: false
+          scoring: average_precision
+          train_test_combinations: null
+          verbose: 0
+    verbose: false
+  name: mlp
+  params: {}
+hash: f8e18dd9214fac15e13c981973fc86c38bf249728620b32d9c43c85ccc6e208c
+path: /home/pedro/master_thesis/experiments/literature_models/runs/f8e18dd_20231202T010346032515_mlp_kiba.yml
+results:
+  LL_average_precision:
+  - 0.7173816265104738
+  - 0.7443078870761536
+  - 0.6384538317032349
+  - 0.6746361069568461
+  - 0.7317741160851008
+  - 0.6756285912297535
+  - 0.44804077982636087
+  - 0.6485036086330234
+  - 0.7581665853116835
+  - 0.6763390851800051
+  - 0.6363720668846601
+  - 0.6512031991839382
+  - 0.7585620534790039
+  - 0.7050310674741992
+  - 0.6415273356723207
+  - 0.7583534066419123
+  LL_roc_auc:
+  - 0.9206369031418398
+  - 0.9299407164012418
+  - 0.8747373886171215
+  - 0.9087418492421294
+  - 0.9224171556369591
+  - 0.9127109780524608
+  - 0.7906435582276292
+  - 0.8951119639323268
+  - 0.9372478106125441
+  - 0.8977152629437396
+  - 0.881383910818065
+  - 0.9074654767409607
+  - 0.9346186418823708
+  - 0.9234294698945248
+  - 0.8714180936352489
+  - 0.9393910582305935
+  LT_average_precision:
+  - 0.4433233911006853
+  - 0.3858373006226291
+  - 0.37620677874101127
+  - 0.36942038757159396
+  - 0.4522552022577283
+  - 0.41291700961088795
+  - 0.3435992133002626
+  - 0.3049092286632964
+  - 0.44914156246608433
+  - 0.4189451849545711
+  - 0.38245844033164467
+  - 0.33762091050827864
+  - 0.43173897401572825
+  - 0.37647465483614573
+  - 0.37279815407665534
+  - 0.35428473968798063
+  LT_roc_auc:
+  - 0.8016993560190331
+  - 0.736406295848465
+  - 0.7667032849264891
+  - 0.7497915440316479
+  - 0.8031054552567687
+  - 0.75414904776432
+  - 0.7386513043002806
+  - 0.6668465569541324
+  - 0.7949717677733461
+  - 0.7709177738588445
+  - 0.7688942062759226
+  - 0.719495475892702
+  - 0.7686906290603484
+  - 0.7270902053768858
+  - 0.754103495055517
+  - 0.7241143672067519
+  TL_average_precision:
+  - 0.602447593965289
+  - 0.6161930081929371
+  - 0.5389498942532831
+  - 0.5658599342324522
+  - 0.5921414881442684
+  - 0.5234636487222311
+  - 0.40658532513512036
+  - 0.486966924201027
+  - 0.5892949271707244
+  - 0.5573910711500942
+  - 0.5057956894714031
+  - 0.5342258267415321
+  - 0.583275641553871
+  - 0.532045243113149
+  - 0.5218634326191548
+  - 0.5871806820387295
+  TL_roc_auc:
+  - 0.8597631170910205
+  - 0.868227649069655
+  - 0.823926186346922
+  - 0.8485411330222048
+  - 0.8624149708458784
+  - 0.8477218008602609
+  - 0.7574083005266506
+  - 0.7955056003513643
+  - 0.8652187591020657
+  - 0.8446148403628325
+  - 0.8196763009702018
+  - 0.8453574152152951
+  - 0.8471187377167121
+  - 0.8526450432194362
+  - 0.8180364672388172
+  - 0.8644251397435482
+  TT_average_precision:
+  - 0.37713884697013633
+  - 0.32932692396149976
+  - 0.32299081057255125
+  - 0.31461068418359245
+  - 0.3417612239933211
+  - 0.3268572157425932
+  - 0.3128197288804061
+  - 0.24867377376156966
+  - 0.34709913982597107
+  - 0.3433511677014021
+  - 0.3029270553423099
+  - 0.2762861082970023
+  - 0.32964405094873184
+  - 0.29684877136269716
+  - 0.3023385178247362
+  - 0.2872007292941221
+  TT_roc_auc:
+  - 0.7319438709876509
+  - 0.6633979409774188
+  - 0.696233493883563
+  - 0.6766612922749
+  - 0.7064449128210412
+  - 0.6730015639374571
+  - 0.7076344826836206
+  - 0.5841141493071754
+  - 0.7164647610168504
+  - 0.6966993995140491
+  - 0.6881532638064497
+  - 0.6469013250958437
+  - 0.6849347190768266
+  - 0.661834993867925
+  - 0.7012251986325558
+  - 0.6517181977176302
+  fit_time:
+  - 6099.701479911804
+  - 6602.9518003463745
+  - 6398.851191997528
+  - 7745.8650941848755
+  - 6614.391968727112
+  - 4942.209158420563
+  - 5748.733480453491
+  - 8501.587273359299
+  - 5673.427004814148
+  - 3855.9681560993195
+  - 4345.434423446655
+  - 6015.894292116165
+  - 7680.575278759003
+  - 5850.543396472931
+  - 5534.577789068222
+  - 8529.274176836014
+  score_time:
+  - 12.449090480804443
+  - 15.522650480270386
+  - 13.98164677619934
+  - 15.735973834991455
+  - 13.354388952255249
+  - 13.497387647628784
+  - 13.051584005355835
+  - 67.22392725944519
+  - 14.737822532653809
+  - 11.83658742904663
+  - 12.086048126220703
+  - 9.919729948043823
+  - 10.610323429107666
+  - 13.129073858261108
+  - 14.144903182983398
+  - 64.72652077674866
+start: 2023-12-02 01:03:46.032515
+wrapper:
+  call: bipartite_positive_dropper.wrap_estimator
+  name: drop50
+  params:
+    drop: 0.5
+    random_state: 0

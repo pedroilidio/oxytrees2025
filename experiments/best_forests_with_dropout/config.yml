@@ -1,0 +1,237 @@
+defaults:
+  runs:
+    active: false
+    directory: best_forests_with_dropout/runs
+    cv:
+      call: bipartite_learn.model_selection.multipartite_cross_validate
+      params:
+        return_estimator: false
+        return_train_score: false
+        scoring:
+        - roc_auc
+        - average_precision
+        # n_jobs: 8
+        n_jobs: 16
+        cv: 4
+        diagonal: false
+        verbose: 10
+        pairwise: true
+        shuffle: true
+        random_state: 0
+        # error_score: raise
+
+aliases:
+  dataset: []  # Necessary for correct defaults merging
+  estimator:
+  - name: bxt_lmo
+    call: bipartite_adaptations.estimators.bxt_lmo
+  - name: brf_lmo
+    call: bipartite_adaptations.estimators.brf_lmo
+
+  - name: bxt_lso
+    call: bipartite_adaptations.estimators.bxt_lso
+  - name: brf_lso
+    call: bipartite_adaptations.estimators.brf_lso
+  
+  - name: bxt_sgso
+    call: bipartite_adaptations.estimators.bxt_sgso
+  - name: brf_sgso
+    call: bipartite_adaptations.estimators.brf_sgso
+  
+  - name: bxt_sgso_us
+    call: bipartite_adaptations.estimators.bxt_sgso_us
+  - name: brf_sgso_us
+    call: bipartite_adaptations.estimators.brf_sgso_us
+  
+  - name: bxt_gso
+    call: bipartite_adaptations.estimators.bxt_gso
+  - name: bxt_gso_1k
+    call: bipartite_adaptations.estimators.bxt_gso
+    params:
+      n_estimators: 1000
+  - name: brf_gso
+    call: bipartite_adaptations.estimators.brf_gso
+  
+  - name: bxt_gmo
+    call: bipartite_adaptations.estimators.bxt_gmo
+  - name: brf_gmo
+    call: bipartite_adaptations.estimators.brf_gmo
+  
+  - name: bxt_gmosa
+    call: bipartite_adaptations.estimators.bxt_gmosa
+  - name: bxt_gmosa_1k
+    call: bipartite_adaptations.estimators.bxt_gmosa
+    params:
+      n_estimators: 1000
+  - name: brf_gmosa
+    call: bipartite_adaptations.estimators.brf_gmosa
+
+  - name: nrlmf
+    call: y_reconstruction.estimators.nrlmf
+  - name: dnilmf
+    call: y_reconstruction.estimators.dnilmf
+
+  wrapper:
+  - name: nrlmf_y_reconstruction
+    call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+    params:
+      classifierassampler__estimator__n_jobs: 4
+  # - name: dnilmf_y_reconstruction
+  #   call: y_reconstruction.estimators.dnilmf_y_reconstruction_wrapper
+
+  - name: nrlmf_y_reconstruction
+    call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+    params:
+      classifierassampler__estimator__n_jobs: 4
+  - name: nrlmf_y_reconstruction_drop50
+    call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+    params:
+      classifierassampler__estimator__n_jobs: 4
+      drop: 0.5
+      random_state: 0
+  - name: nrlmf_y_reconstruction_drop70
+    call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+    params:
+      classifierassampler__estimator__n_jobs: 4
+      drop: 0.7
+      random_state: 0
+  - name: nrlmf_y_reconstruction_drop90
+    call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+    params:
+      classifierassampler__estimator__n_jobs: 4
+      drop: 0.9
+      random_state: 0
+
+
+
+runs:
+  # Forests with y reconstruction
+  - wrapper:
+    # - nrlmf_y_reconstruction (ran at y_reconstruction/runs)
+    - nrlmf_y_reconstruction_drop50
+    - nrlmf_y_reconstruction_drop70
+    - nrlmf_y_reconstruction_drop90
+    dataset:
+    - nuclear_receptors
+    - gpcr
+    - davis
+    - ion_channels
+    - enzymes
+    - ern
+    - srn
+    - lncrna
+    - mirna
+    - kiba
+    estimator:
+    - bxt_gso
+    - brf_gso
+    - bxt_gmosa
+    # Too memory-hungry, will run separately:
+    # - brf_gmo
+    # - bxt_gmo
+    active: false
+
+  # Larger forests with no y reconstruction.
+  # (continuous y makes trees a lot bigger, so using y_reconstruction is dificult)
+  - wrapper:
+    # - null
+    - drop50
+    - drop70
+    - drop90
+    dataset:
+    - nuclear_receptors
+    - gpcr
+    - davis
+    - ion_channels
+    - enzymes
+    - ern
+    - srn
+    - lncrna
+    - kiba
+    - mirna
+    estimator:
+    - bxt_gso_1k
+    - bxt_gmosa_1k
+    active: false
+
+  # nrlmf and forests alone
+  - wrapper:
+    # - null
+    - drop50
+    - drop70
+    - drop90
+    dataset:
+    - nuclear_receptors
+    - gpcr
+    - davis
+    - ion_channels
+    - enzymes
+    - ern
+    - srn
+    - lncrna
+    - mirna
+    - kiba
+    estimator:
+    - nrlmf
+    - bxt_gso
+    - brf_lmo
+    - brf_gmo
+    active: false
+
+
+  # Takes long time and much memory
+  - estimator:
+    - bxt_gmo
+    - brf_gmo
+    modify_params:
+    # Parallelize trees instead of CV
+    - n_jobs: 75  # maxes at 3.5 threads. There is probably competition for data.
+    # - n_jobs: 25
+    dataset:
+    - kiba
+    - mirna
+    wrapper:
+    - name: nrlmf_y_reconstruction_drop50
+      call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+      params:
+        classifierassampler__estimator__n_jobs: 75
+        drop: 0.5
+        random_state: 0
+    - name: nrlmf_y_reconstruction_drop70
+      call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+      params:
+        classifierassampler__estimator__n_jobs: 75
+        drop: 0.7
+        random_state: 0
+    - name: nrlmf_y_reconstruction_drop90
+      call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+      params:
+        classifierassampler__estimator__n_jobs: 75
+        drop: 0.9
+        random_state: 0
+    cv:
+      params:
+        n_jobs: 1  # Limit memory usage
+    active: false
+
+  # GMO forests with y reconstruction (remaining datasets)
+  - estimator:
+    - bxt_gmo
+    - brf_gmo
+    wrapper:
+    # - nrlmf_y_reconstruction (ran at y_reconstruction/runs)
+    - nrlmf_y_reconstruction_drop50
+    - nrlmf_y_reconstruction_drop70
+    - nrlmf_y_reconstruction_drop90
+    dataset:
+    - nuclear_receptors
+    - gpcr
+    - davis
+    - ion_channels
+    - enzymes
+    - ern
+    - srn
+    - lncrna
+    # - mirna
+    # - kiba
+    active: true

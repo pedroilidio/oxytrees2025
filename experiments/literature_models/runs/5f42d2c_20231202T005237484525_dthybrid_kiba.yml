@@ -1,0 +1,289 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 4
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/kiba/final/ligand_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  - force_download: false
+    path: datasets/kiba/final/normalized_target_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  name: kiba
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/kiba/final/binary_affinity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+directory: literature_models/runs
+end: 2023-12-02 00:52:53.257229
+estimator:
+  call: literature_models.estimators.dthybrid_regressor
+  final_params:
+    memory: null
+    steps:
+    - - dropper
+      - call: bipartite_positive_dropper.BipartitePositiveDropper
+        params:
+          drop: 0.5
+          random_state: 0
+    - - estimator
+      - call: imblearn.pipeline.Pipeline
+        params:
+          memory: null
+          steps:
+          - - symmetryenforcer
+            - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+              params:
+                ndim: 2
+                samplers:
+                  call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                  params:
+                    sampling_strategy: auto
+          - - dthybridsampler
+            - call: bipartite_learn.preprocessing.multipartite.DTHybridSampler
+              params:
+                alpha: 0.5
+                lamb: 0.5
+          - - localmultioutputwrapper
+            - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+              params:
+                combine_func_kwargs: null
+                combine_predictions_func:
+                  load: numpy.mean
+                independent_labels: true
+                primary_cols_estimator:
+                  call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                  params:
+                    metric: precomputed
+                    metric_params: null
+                    n_jobs: null
+                    p: 2
+                    weights: similarity
+                primary_rows_estimator:
+                  call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                  params:
+                    metric: precomputed
+                    metric_params: null
+                    n_jobs: null
+                    p: 2
+                    weights: similarity
+                secondary_cols_estimator:
+                  call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                  params:
+                    metric: precomputed
+                    metric_params: null
+                    n_jobs: null
+                    p: 2
+                    weights: similarity
+                secondary_rows_estimator:
+                  call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                  params:
+                    metric: precomputed
+                    metric_params: null
+                    n_jobs: null
+                    p: 2
+                    weights: similarity
+          verbose: false
+    verbose: false
+  name: dthybrid
+  params: {}
+hash: 5f42d2c8f45a6bbf96a39843df3ff8e61d5ca84423542df25a7effe6a743567f
+path: /home/pedro/master_thesis/experiments/literature_models/runs/5f42d2c_20231202T005237484525_dthybrid_kiba.yml
+results:
+  LL_average_precision:
+  - 0.37402215735772887
+  - 0.3669635321937808
+  - 0.3804698953343399
+  - 0.3686938358930087
+  - 0.3689746036786565
+  - 0.3649555677965687
+  - 0.37554814556504507
+  - 0.37071850814888735
+  - 0.39088005897592787
+  - 0.3835895646080292
+  - 0.39328711028276137
+  - 0.38582465402133753
+  - 0.3833437629218332
+  - 0.38302929338475933
+  - 0.39107196765880287
+  - 0.3822410030357269
+  LL_roc_auc:
+  - 0.7150697676938795
+  - 0.7201211312032834
+  - 0.720601318823334
+  - 0.7166637523723676
+  - 0.7118040494829367
+  - 0.718276997347087
+  - 0.7183610524159243
+  - 0.7171007225000517
+  - 0.7138888970061172
+  - 0.7179375065176977
+  - 0.7202508508123527
+  - 0.7181804664169474
+  - 0.7103096196144301
+  - 0.7168264884064558
+  - 0.717283528573876
+  - 0.7143875947238454
+  LT_average_precision:
+  - 0.32464494690281803
+  - 0.3273725838456375
+  - 0.2875182050042406
+  - 0.30183977045941557
+  - 0.32845398702054385
+  - 0.3277840961032868
+  - 0.28519763489552913
+  - 0.3026672108411525
+  - 0.33556315007815857
+  - 0.3310454817370486
+  - 0.2892496323735628
+  - 0.30532680905371323
+  - 0.33725941179575847
+  - 0.33762166778422287
+  - 0.2950662274601926
+  - 0.3067722795266318
+  LT_roc_auc:
+  - 0.6993685671196722
+  - 0.6790435851558575
+  - 0.6771942190369866
+  - 0.6735755647060286
+  - 0.699610927931095
+  - 0.6780892489745398
+  - 0.6719188265344831
+  - 0.6725912879516396
+  - 0.6998642525700023
+  - 0.6752944235090622
+  - 0.6708526329578549
+  - 0.6704670942364123
+  - 0.6992633283240193
+  - 0.677610079008071
+  - 0.6719465210374815
+  - 0.6697183933573654
+  TL_average_precision:
+  - 0.3619517412750489
+  - 0.3578083555385445
+  - 0.3709077859714699
+  - 0.35966957249326703
+  - 0.3749410694520092
+  - 0.3688415645145623
+  - 0.3767488481318632
+  - 0.3735967250846078
+  - 0.368571700884319
+  - 0.35763448713525786
+  - 0.37000036468359876
+  - 0.36637113866800286
+  - 0.3333926594467481
+  - 0.3285370623819292
+  - 0.3379844728476729
+  - 0.32819242739014387
+  TL_roc_auc:
+  - 0.6881867112948022
+  - 0.6940697613224073
+  - 0.6977236408872068
+  - 0.6936116735893596
+  - 0.7061586323584562
+  - 0.7117938144249105
+  - 0.7110405278852392
+  - 0.7103474097270722
+  - 0.7064370719138798
+  - 0.7084318165277244
+  - 0.7094650725406114
+  - 0.7086594111359963
+  - 0.696026369003093
+  - 0.6989923971568733
+  - 0.6985820599053738
+  - 0.697277045927888
+  TT_average_precision:
+  - 0.32128506750196684
+  - 0.31832811308889974
+  - 0.27563048507850546
+  - 0.2924975772087688
+  - 0.32212151662413735
+  - 0.3265226385474023
+  - 0.28493542288109497
+  - 0.2997940564726962
+  - 0.3198804951140567
+  - 0.3231567410526605
+  - 0.2848337737382461
+  - 0.29377292638683555
+  - 0.2905430790634393
+  - 0.29229182521825775
+  - 0.25790696159477045
+  - 0.275519706589188
+  TT_roc_auc:
+  - 0.6799893751919498
+  - 0.6563716169776672
+  - 0.6458322162518213
+  - 0.648102432340474
+  - 0.6872612076148281
+  - 0.6671147791227756
+  - 0.6676138715094354
+  - 0.6610651421361259
+  - 0.6870865879123427
+  - 0.6686030054380587
+  - 0.6664953516817522
+  - 0.6629670426536539
+  - 0.6767274460827448
+  - 0.6561000414519355
+  - 0.6568613972109666
+  - 0.6544294429081325
+  fit_time:
+  - 0.3181190490722656
+  - 0.3602874279022217
+  - 0.3609178066253662
+  - 0.35853052139282227
+  - 0.3266425132751465
+  - 0.4063985347747803
+  - 0.32996535301208496
+  - 0.3122587203979492
+  - 0.3315458297729492
+  - 0.3103365898132324
+  - 0.387967586517334
+  - 0.29686737060546875
+  - 0.3051009178161621
+  - 0.3187994956970215
+  - 0.3336067199707031
+  - 0.29204463958740234
+  score_time:
+  - 3.3462142944335938
+  - 3.431027889251709
+  - 3.3195061683654785
+  - 3.3227767944335938
+  - 3.3192975521087646
+  - 3.297912836074829
+  - 3.2959766387939453
+  - 3.4111216068267822
+  - 3.336442232131958
+  - 3.2895925045013428
+  - 3.313009023666382
+  - 3.3903985023498535
+  - 3.2993202209472656
+  - 3.306971311569214
+  - 3.2959718704223633
+  - 3.3983638286590576
+start: 2023-12-02 00:52:37.484525
+wrapper:
+  call: bipartite_positive_dropper.wrap_estimator
+  name: drop50
+  params:
+    drop: 0.5
+    random_state: 0

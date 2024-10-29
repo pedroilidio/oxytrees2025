@@ -1,0 +1,333 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 16
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - average_precision
+    - roc_auc
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/miRNA/final/normalized_mirna_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  - force_download: false
+    path: datasets/miRNA/final/normalized_target_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  name: mirna
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/miRNA/final/interaction_matrix.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+directory: best_forests_with_dropout/runs
+end: 2023-12-07 08:39:42.571277
+estimator:
+  call: bipartite_adaptations.estimators.bxt_gmosa
+  final_params:
+    memory: /tmp
+    steps:
+    - - bipartitepositivedropper
+      - call: bipartite_positive_dropper.BipartitePositiveDropper
+        params:
+          drop: 0.9
+          random_state: 0
+    - - symmetryenforcer
+      - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+        params:
+          ndim: 2
+          samplers:
+            call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+            params:
+              sampling_strategy: auto
+    - - classifierassampler
+      - call: wrappers.ClassifierAsSampler
+        params:
+          estimator:
+            call: bipartite_learn.model_selection._search.MultipartiteRandomizedSearchCV
+            params:
+              cv:
+                call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+                params: {}
+              diagonal: false
+              error_score: .nan
+              estimator:
+                call: bipartite_learn.matrix_factorization._nrlmf.NRLMFClassifier
+                params:
+                  alpha_cols: same
+                  alpha_rows: 0.1
+                  lambda_cols: same
+                  lambda_rows: 0.625
+                  learning_rate: 1.0
+                  max_iter: 100
+                  n_components_cols: same
+                  n_components_rows: 10
+                  n_neighbors: 5
+                  positive_importance: 5.0
+                  random_state:
+                    call: numpy.random.mtrand.RandomState
+                    params: {}
+                  tol: 1.0e-05
+                  verbose: false
+              n_iter: 100
+              n_jobs: 4
+              pairwise: true
+              param_distributions:
+                alpha_cols:
+                  call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+                  params: {}
+                alpha_rows:
+                  call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+                  params: {}
+                lambda_cols:
+                  call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+                  params: {}
+                lambda_rows:
+                  call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+                  params: {}
+                learning_rate:
+                  call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+                  params: {}
+                n_components_rows:
+                - 50
+                - 100
+                n_neighbors:
+                - 3
+                - 5
+                - 10
+              pre_dispatch: 2*n_jobs
+              random_state: 0
+              refit: true
+              return_train_score: false
+              scoring: average_precision
+              train_test_combinations: null
+              verbose: 1
+          keep_positives: true
+    - - bipartiteextratreesregressor
+      - call: bipartite_learn.ensemble._forest.BipartiteExtraTreesRegressor
+        params:
+          bipartite_adapter: gmosa
+          bootstrap: false
+          ccp_alpha: 0.0
+          criterion: squared_error
+          max_col_features: null
+          max_depth: null
+          max_features: 1.0
+          max_leaf_nodes: null
+          max_row_features: null
+          max_samples: null
+          min_col_weight_fraction_leaf: 0.0
+          min_cols_leaf: 1
+          min_cols_split: 1
+          min_impurity_decrease: 0.0
+          min_row_weight_fraction_leaf: 0.0
+          min_rows_leaf: 1
+          min_rows_split: 1
+          min_samples_leaf: 1
+          min_samples_split: 2
+          min_weight_fraction_leaf: 0.0
+          n_estimators: 100
+          n_jobs: 3
+          oob_score: false
+          prediction_weights: null
+          random_state: 0
+          verbose: 10
+          warm_start: false
+    verbose: false
+  name: bxt_gmosa
+  params: {}
+hash: a64d2f85f56035f2c96345525b54390949640f6c0292e5f15d071bb3d45bc011
+path: "/home/pedro/mestrado/disserta\xE7\xE3o/experiments/best_forests_with_dropout/runs/a64d2f8_20231207T000612528689_bxt_gmosa_mirna.yml"
+results:
+  LL_average_precision:
+  - 0.2868430779357711
+  - 0.30332731163588655
+  - 0.2736496030316595
+  - 0.2918422210840679
+  - 0.2777535925485969
+  - 0.2997846942883764
+  - 0.28230426264260455
+  - 0.2974983301044748
+  - 0.2910174479765322
+  - 0.28382885343388675
+  - 0.29968908424679097
+  - 0.29406997490140663
+  - 0.27787316937400947
+  - 0.27160022151882923
+  - 0.24290402364483138
+  - 0.29548373785820925
+  LL_roc_auc:
+  - 0.6891338783935186
+  - 0.6977029799136638
+  - 0.6752549831689403
+  - 0.6931681864228644
+  - 0.6896388582751961
+  - 0.704595843144061
+  - 0.6787070737321309
+  - 0.707197225836571
+  - 0.7026132436898453
+  - 0.6834127407367716
+  - 0.7061707831125403
+  - 0.7024839020747253
+  - 0.6919558240834178
+  - 0.6641046577960575
+  - 0.6324647065754807
+  - 0.6849551415708894
+  LT_average_precision:
+  - 0.11630668250575574
+  - 0.11733461626404625
+  - 0.11646774489680062
+  - 0.1201453819320833
+  - 0.11946254934827158
+  - 0.11620598093043985
+  - 0.11824372494338259
+  - 0.12516681446620842
+  - 0.12463321906998628
+  - 0.11483871146236359
+  - 0.11983535278882151
+  - 0.1232460033977571
+  - 0.11387712220335136
+  - 0.10435533935113
+  - 0.10281514560454821
+  - 0.11853412372460836
+  LT_roc_auc:
+  - 0.6251663465667325
+  - 0.6425445451343982
+  - 0.6174019245895455
+  - 0.6313352335255618
+  - 0.6364752619444514
+  - 0.6354616156222486
+  - 0.6266407891477881
+  - 0.6405163338852395
+  - 0.6437002417788467
+  - 0.6415049459758965
+  - 0.62854811775395
+  - 0.6358633262233739
+  - 0.6203272722271544
+  - 0.612869059652623
+  - 0.5971081436069691
+  - 0.6320080917717181
+  TL_average_precision:
+  - 0.1543189707273251
+  - 0.17023637464556204
+  - 0.14354174110394338
+  - 0.16740530981592172
+  - 0.14529378309669744
+  - 0.1607183107907147
+  - 0.13874199975876322
+  - 0.16338882122844212
+  - 0.17206501023821724
+  - 0.17610428326117228
+  - 0.1758647120109527
+  - 0.17663139203476683
+  - 0.16638643496095404
+  - 0.16682266435315962
+  - 0.14109010040301567
+  - 0.16794225903372417
+  TL_roc_auc:
+  - 0.6208312602798483
+  - 0.6301373416567961
+  - 0.6021322142957528
+  - 0.6260993572931711
+  - 0.6231854094581504
+  - 0.6327821604130535
+  - 0.6106575291325116
+  - 0.6327158043683817
+  - 0.6463556382870641
+  - 0.6467183242531837
+  - 0.6438177614615471
+  - 0.6480887304678362
+  - 0.6320716513095959
+  - 0.6286389343449902
+  - 0.5994231380547188
+  - 0.6375375746992213
+  TT_average_precision:
+  - 0.10371087023445978
+  - 0.09606315216146226
+  - 0.09221052715976727
+  - 0.10081355835408697
+  - 0.09623936418141743
+  - 0.08981678244846392
+  - 0.09375308139492981
+  - 0.09165673335303479
+  - 0.1134889482838392
+  - 0.10766353588162232
+  - 0.11097970946254203
+  - 0.1085343217767537
+  - 0.117364109625205
+  - 0.09355999824615635
+  - 0.09191163489218271
+  - 0.09491619635417645
+  TT_roc_auc:
+  - 0.5834888582968172
+  - 0.5743418673390377
+  - 0.5577782488247156
+  - 0.5814145293589926
+  - 0.5777736839698765
+  - 0.563232649787754
+  - 0.5729670886677631
+  - 0.563357575335952
+  - 0.6156380300093209
+  - 0.6122308600388716
+  - 0.6023526420932578
+  - 0.603279344491588
+  - 0.5892360348288425
+  - 0.5732245723444954
+  - 0.5493664244555818
+  - 0.5762853768454919
+  fit_time:
+  - 21377.687932252884
+  - 22719.143027305603
+  - 24044.885879278183
+  - 23279.42780470848
+  - 24370.42652773857
+  - 23555.70142889023
+  - 22663.067281484604
+  - 22890.24216580391
+  - 22362.451971769333
+  - 22671.48847603798
+  - 19482.204755306244
+  - 23064.932586669922
+  - 23308.359214305878
+  - 24055.657207489014
+  - 30734.725957393646
+  - 22837.24752855301
+  score_time:
+  - 113.3243613243103
+  - 86.0682806968689
+  - 60.641801595687866
+  - 61.8611056804657
+  - 55.80400896072388
+  - 63.421181201934814
+  - 91.49102759361267
+  - 91.02640318870544
+  - 106.47131443023682
+  - 93.28473925590515
+  - 106.24927234649658
+  - 63.26545524597168
+  - 71.90077304840088
+  - 64.76897764205933
+  - 73.5258800983429
+  - 103.66661286354065
+start: 2023-12-07 00:06:12.528689
+wrapper:
+  call: y_reconstruction.estimators.nrlmf_y_reconstruction_wrapper
+  name: nrlmf_y_reconstruction_drop90
+  params:
+    classifierassampler__estimator__n_jobs: 4
+    drop: 0.9
+    random_state: 0

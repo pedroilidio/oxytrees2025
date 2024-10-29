@@ -1,0 +1,294 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 8
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - average_precision
+    - roc_auc
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/ern/X1.txt
+    read:
+      call: data_loading.load_regulatory_network_features
+      params: {}
+    url: https://people.montefiore.uliege.be/schrynemackers/ern/X1.txt
+  - force_download: false
+    path: datasets/ern/X2.txt
+    read:
+      call: data_loading.load_regulatory_network_features
+      params: {}
+    url: https://people.montefiore.uliege.be/schrynemackers/ern/X2.txt
+  name: ern
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/ern/Y.txt
+    read:
+      call: numpy.loadtxt
+      params:
+        delimiter: ','
+    url: https://people.montefiore.uliege.be/schrynemackers/ern/Y.txt
+directory: literature_models/runs
+end: 2023-12-04 04:09:28.983233
+estimator:
+  call: y_reconstruction.estimators.nrlmf
+  final_params:
+    memory: null
+    steps:
+    - - dropper
+      - call: bipartite_positive_dropper.BipartitePositiveDropper
+        params:
+          drop: 0.7
+          random_state: 0
+    - - estimator
+      - call: bipartite_learn.model_selection._search.MultipartiteRandomizedSearchCV
+        params:
+          cv:
+            call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+            params: {}
+          diagonal: false
+          error_score: .nan
+          estimator:
+            call: bipartite_learn.matrix_factorization._nrlmf.NRLMFClassifier
+            params:
+              alpha_cols: same
+              alpha_rows: 0.1
+              lambda_cols: same
+              lambda_rows: 0.625
+              learning_rate: 1.0
+              max_iter: 100
+              n_components_cols: same
+              n_components_rows: 10
+              n_neighbors: 5
+              positive_importance: 5.0
+              random_state:
+                call: numpy.random.mtrand.RandomState
+                params: {}
+              tol: 1.0e-05
+              verbose: false
+          n_iter: 100
+          n_jobs: 3
+          pairwise: true
+          param_distributions:
+            alpha_cols:
+              call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+              params: {}
+            alpha_rows:
+              call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+              params: {}
+            lambda_cols:
+              call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+              params: {}
+            lambda_rows:
+              call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+              params: {}
+            learning_rate:
+              call: scipy.stats._distn_infrastructure.rv_continuous_frozen
+              params: {}
+            n_components_rows:
+            - 50
+            - 100
+            n_neighbors:
+            - 3
+            - 5
+            - 10
+          pre_dispatch: 2*n_jobs
+          random_state: 0
+          refit: true
+          return_train_score: false
+          scoring: average_precision
+          train_test_combinations: null
+          verbose: 1
+    verbose: false
+  name: nrlmf
+  params: {}
+hash: 6a2bb29569eb000236f0c8d3f2508ee9e8b40aeed1b3884330a645103bd54435
+path: /home/pedro/master_thesis/experiments/literature_models/runs/6a2bb29_20231204T040316291702_nrlmf_ern.yml
+results:
+  LL_average_precision:
+  - 0.542802581338084
+  - 0.5342089441460561
+  - 0.48077723443039944
+  - 0.4327208339230254
+  - 0.40518083116992276
+  - 0.49874737279848136
+  - 0.47189308088556886
+  - 0.4333798368746359
+  - 0.5314915221796213
+  - 0.5065945530465827
+  - 0.4667486990123656
+  - 0.4017335551401161
+  - 0.5177983045886616
+  - 0.5199767970768536
+  - 0.5343848977414623
+  - 0.46840421409075783
+  LL_roc_auc:
+  - 0.9017347290191368
+  - 0.8852903768375957
+  - 0.8726497141021327
+  - 0.8196587685578731
+  - 0.8617293925743047
+  - 0.8832395389120995
+  - 0.864334201940148
+  - 0.7980822049441303
+  - 0.9010526718955206
+  - 0.8908977628032161
+  - 0.864998927464756
+  - 0.8110853225558315
+  - 0.8821837487144906
+  - 0.8777311696635965
+  - 0.8958665904157188
+  - 0.8605935084778161
+  LT_average_precision:
+  - 0.06188980625733981
+  - 0.08459404541123867
+  - 0.027933718696570166
+  - 0.04957536932333426
+  - 0.05398514914902787
+  - 0.05021318626177985
+  - 0.023378403475345436
+  - 0.04341621329481929
+  - 0.043680090757650836
+  - 0.05763723813659045
+  - 0.02668868904903187
+  - 0.04318507821720184
+  - 0.07510393540377992
+  - 0.07118448802572791
+  - 0.023422701367655566
+  - 0.0428626538800539
+  LT_roc_auc:
+  - 0.6629888890784911
+  - 0.7009454024732844
+  - 0.6581341175223195
+  - 0.6421033916089739
+  - 0.668969460792432
+  - 0.6476904778023937
+  - 0.601931048437963
+  - 0.5831931492210181
+  - 0.6612951402371636
+  - 0.6921830700338187
+  - 0.6241759206206822
+  - 0.5896162170422381
+  - 0.6645055833828981
+  - 0.6929179391697576
+  - 0.6308907440549921
+  - 0.6044982261923929
+  TL_average_precision:
+  - 0.37037708841756883
+  - 0.39488595846802665
+  - 0.30686638607997535
+  - 0.26278540539817863
+  - 0.4269134889023729
+  - 0.4143033698601107
+  - 0.38424462313725516
+  - 0.18301079317583024
+  - 0.40086376327995304
+  - 0.40957270334373863
+  - 0.3283383141064508
+  - 0.24414526776710183
+  - 0.4548233289343577
+  - 0.4172830955778096
+  - 0.4271197793051011
+  - 0.17417238225259285
+  TL_roc_auc:
+  - 0.8924181608939376
+  - 0.8840528972079806
+  - 0.863163073538121
+  - 0.8231444909044061
+  - 0.8747813690022849
+  - 0.8732958932142488
+  - 0.8601326262025758
+  - 0.7663735130653846
+  - 0.8907315075696063
+  - 0.8795320750285052
+  - 0.8637584668927321
+  - 0.819886408928361
+  - 0.888992696382177
+  - 0.8789470130778113
+  - 0.8887002274375371
+  - 0.8036565008713975
+  TT_average_precision:
+  - 0.07787809613613575
+  - 0.08245971303236557
+  - 0.03977358088244656
+  - 0.04967559376490692
+  - 0.05841340021763482
+  - 0.06066738374750881
+  - 0.0291483402668359
+  - 0.05021241150835473
+  - 0.07185944753329962
+  - 0.05798982191850613
+  - 0.0314393483654721
+  - 0.05639249912640387
+  - 0.04515512605262996
+  - 0.06483034634666593
+  - 0.056908653146352704
+  - 0.044776829263202686
+  TT_roc_auc:
+  - 0.7261770853572577
+  - 0.7272409587165232
+  - 0.7340732974999861
+  - 0.6556734596990815
+  - 0.6810013114248245
+  - 0.7330993654779483
+  - 0.6845324729318111
+  - 0.641932245586326
+  - 0.7303965128823886
+  - 0.7081250259088837
+  - 0.6698389818313412
+  - 0.6748376548410246
+  - 0.6814344020878171
+  - 0.695910637975401
+  - 0.7628876664022979
+  - 0.6166028192865672
+  fit_time:
+  - 176.21430015563965
+  - 184.05226874351501
+  - 177.06124138832092
+  - 176.26584339141846
+  - 184.4347026348114
+  - 176.29245042800903
+  - 184.4561800956726
+  - 190.16098737716675
+  - 179.43262839317322
+  - 180.54095149040222
+  - 185.8389594554901
+  - 182.5005247592926
+  - 184.93440127372742
+  - 178.49881649017334
+  - 185.15605306625366
+  - 181.0250687599182
+  score_time:
+  - 0.13956332206726074
+  - 0.14901256561279297
+  - 0.15859365463256836
+  - 0.14391207695007324
+  - 0.14857769012451172
+  - 0.15558123588562012
+  - 0.14368200302124023
+  - 0.15484976768493652
+  - 0.13940000534057617
+  - 0.1435379981994629
+  - 0.14127802848815918
+  - 0.1492609977722168
+  - 0.15056443214416504
+  - 0.14479947090148926
+  - 0.15508580207824707
+  - 0.1400918960571289
+start: 2023-12-04 04:03:16.291702
+wrapper:
+  call: bipartite_positive_dropper.wrap_estimator
+  name: drop70
+  params:
+    drop: 0.7
+    random_state: 0

@@ -1,0 +1,308 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 16
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/kiba/final/ligand_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  - force_download: false
+    path: datasets/kiba/final/normalized_target_similarity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+  name: kiba
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/kiba/final/binary_affinity.tsv
+    read:
+      call: data_loading.read_table_to_array
+      params: {}
+directory: literature_models/runs
+end: 2023-12-05 19:34:53.404961
+estimator:
+  call: literature_models.estimators.blmnii_rls
+  final_params:
+    cv:
+      call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+      params: {}
+    diagonal: false
+    error_score: .nan
+    estimator:
+      call: imblearn.pipeline.Pipeline
+      params:
+        memory: null
+        steps:
+        - - symmetryenforcer
+          - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+            params:
+              ndim: 2
+              samplers:
+                call: bipartite_learn.preprocessing.monopartite.SymmetryEnforcer
+                params:
+                  sampling_strategy: auto
+        - - targetkernellinearcombiner
+          - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+            params:
+              ndim: 2
+              samplers:
+                call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                params:
+                  alpha: 0.5
+                  filter_params: false
+                  gamma: 1.0
+                  gamma_scale: squares
+                  metric: rbf
+                  n_jobs: null
+        - - localmultioutputwrapper
+          - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+            params:
+              combine_func_kwargs: null
+              combine_predictions_func:
+                load: numpy.mean
+              independent_labels: false
+              primary_cols_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              primary_rows_estimator:
+                call: bipartite_learn.neighbors.WeightedNeighborsRegressor
+                params:
+                  metric: precomputed
+                  metric_params: null
+                  n_jobs: null
+                  p: 2
+                  weights: similarity
+              secondary_cols_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              secondary_rows_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+        verbose: false
+    n_jobs: 4
+    pairwise: true
+    param_grid:
+      targetkernellinearcombiner__samplers__alpha:
+      - 0.0
+      - 0.1
+      - 0.25
+      - 0.5
+      - 0.75
+      - 0.9
+      - 1.0
+    pre_dispatch: 2*n_jobs
+    refit: true
+    return_train_score: false
+    scoring: average_precision
+    train_test_combinations: null
+    verbose: 0
+  name: blmnii_rls
+  params: {}
+hash: 14273da58045ee524250eafe1cde8076c6edcdb5ea39e69156b03ae2c4a7c94f
+path: /home/pedro/master_thesis/experiments/literature_models/runs/14273da_20231205T193223079776_blmnii_rls_kiba.yml
+results:
+  LL_average_precision:
+  - 0.668184813908745
+  - 0.687674294271247
+  - 0.6904612085838954
+  - 0.6720179697969549
+  - 0.6703029439285174
+  - 0.6903178245405518
+  - 0.6936763577380569
+  - 0.6771089366617227
+  - 0.670184454624116
+  - 0.692075308284052
+  - 0.693793917299008
+  - 0.6763626509600541
+  - 0.673052721489801
+  - 0.6926366578398093
+  - 0.6951830255659914
+  - 0.6773833244876886
+  LL_roc_auc:
+  - 0.8681411340152695
+  - 0.8824771339260711
+  - 0.879910762617037
+  - 0.8747431120158757
+  - 0.8670704753333022
+  - 0.8818824574556892
+  - 0.8796788170097201
+  - 0.874406624460007
+  - 0.8667899091065804
+  - 0.881708602722608
+  - 0.8795233126491747
+  - 0.874109786052794
+  - 0.8673186701551033
+  - 0.8821832784623667
+  - 0.8798653502729159
+  - 0.8739656545157898
+  LT_average_precision:
+  - 0.4174834583751474
+  - 0.40503781203764555
+  - 0.38610681141712644
+  - 0.36908577969316003
+  - 0.42916467827208193
+  - 0.4118477291837457
+  - 0.3915827441315104
+  - 0.37423749854936017
+  - 0.4259666236483379
+  - 0.41115567315261
+  - 0.38830449737932093
+  - 0.37353672274929556
+  - 0.4237305764300272
+  - 0.40846411468320926
+  - 0.39273934875655603
+  - 0.3723728864170805
+  LT_roc_auc:
+  - 0.7760545067186477
+  - 0.743516193862291
+  - 0.7569089430113682
+  - 0.7514118095303991
+  - 0.7819675769562586
+  - 0.745157104057315
+  - 0.7553547651554233
+  - 0.7532305698569345
+  - 0.779544119002969
+  - 0.7452654606821539
+  - 0.7545473708822776
+  - 0.7511186284243454
+  - 0.7751664356188938
+  - 0.7408822981991425
+  - 0.7533855157810301
+  - 0.748467726958473
+  TL_average_precision:
+  - 0.5557639853504326
+  - 0.5681904928962738
+  - 0.5730982169828807
+  - 0.5585921451778947
+  - 0.567435377516564
+  - 0.5685206939408101
+  - 0.5773540944929358
+  - 0.5595807098254165
+  - 0.5621891096845806
+  - 0.5743001404465453
+  - 0.57692494416203
+  - 0.5611310378753479
+  - 0.5447061590654766
+  - 0.5506869199036291
+  - 0.5591738865053578
+  - 0.5383841878012652
+  TL_roc_auc:
+  - 0.8203332037001027
+  - 0.8339349319655367
+  - 0.8305408182765788
+  - 0.8250224727574191
+  - 0.8334448456148246
+  - 0.8430495482156234
+  - 0.8392093585383072
+  - 0.8354603173643673
+  - 0.826749339951187
+  - 0.8401442311653159
+  - 0.8347410268192981
+  - 0.8301982708718704
+  - 0.8238679311325585
+  - 0.8349236787406085
+  - 0.8309861918751564
+  - 0.8271137460679615
+  TT_average_precision:
+  - 0.3545189416524626
+  - 0.3452009480474926
+  - 0.3282034982741161
+  - 0.3155744011164832
+  - 0.3356413403616959
+  - 0.3445897158237621
+  - 0.32939444865453804
+  - 0.31313500261020155
+  - 0.34789122208823114
+  - 0.34501161977410705
+  - 0.33073356506312945
+  - 0.30834416720179003
+  - 0.33222064758890635
+  - 0.32833760257734473
+  - 0.31551837752874834
+  - 0.30150973399533915
+  TT_roc_auc:
+  - 0.7106592242886758
+  - 0.6781205312643255
+  - 0.690386658190441
+  - 0.6816681915546352
+  - 0.7016011790370615
+  - 0.6816609304081911
+  - 0.7054751758299298
+  - 0.6851218519960736
+  - 0.7098338010178183
+  - 0.6796879032725573
+  - 0.6972792518562305
+  - 0.6844393676359679
+  - 0.7079150580986602
+  - 0.6792090806139002
+  - 0.7012122761947217
+  - 0.6867928547165585
+  fit_time:
+  - 132.45530796051025
+  - 135.78306698799133
+  - 133.3271403312683
+  - 134.79090929031372
+  - 126.65276765823364
+  - 128.475670337677
+  - 137.19335103034973
+  - 141.5324764251709
+  - 135.85252904891968
+  - 135.86427187919617
+  - 139.77242183685303
+  - 134.63959455490112
+  - 144.6986005306244
+  - 140.18273258209229
+  - 140.35358595848083
+  - 127.92317152023315
+  score_time:
+  - 3.7576355934143066
+  - 3.8753795623779297
+  - 3.880751371383667
+  - 3.8349781036376953
+  - 3.892843246459961
+  - 3.956413984298706
+  - 3.8810553550720215
+  - 3.8370044231414795
+  - 3.956671714782715
+  - 3.901737928390503
+  - 3.816136121749878
+  - 3.853473424911499
+  - 3.9901626110076904
+  - 3.8154144287109375
+  - 3.8058156967163086
+  - 4.060139894485474
+start: 2023-12-05 19:32:23.079776
+wrapper: null

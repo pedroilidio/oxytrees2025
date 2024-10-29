@@ -1,0 +1,306 @@
+active: true
+cv:
+  call: bipartite_learn.model_selection.multipartite_cross_validate
+  params:
+    cv: 4
+    diagonal: false
+    n_jobs: 16
+    pairwise: true
+    random_state: 0
+    return_estimator: false
+    return_train_score: false
+    scoring:
+    - roc_auc
+    - average_precision
+    shuffle: true
+    verbose: 10
+dataset:
+  X:
+  - force_download: false
+    path: datasets/srn/X1.txt
+    read:
+      call: data_loading.load_regulatory_network_features
+      params: {}
+    url: https://people.montefiore.uliege.be/schrynemackers/srn/X1.txt
+  - force_download: false
+    path: datasets/srn/X2.txt
+    read:
+      call: data_loading.load_regulatory_network_features
+      params: {}
+    url: https://people.montefiore.uliege.be/schrynemackers/srn/X2.txt
+  name: srn
+  pairwise: true
+  y:
+    force_download: false
+    path: datasets/srn/Y.txt
+    read:
+      call: numpy.loadtxt
+      params:
+        delimiter: ','
+    url: https://people.montefiore.uliege.be/schrynemackers/srn/Y.txt
+directory: literature_models/runs
+end: 2023-12-05 19:57:11.258949
+estimator:
+  call: literature_models.estimators.lmo_rls
+  final_params:
+    cv:
+      call: bipartite_learn.model_selection._split.MultipartiteCrossValidator
+      params: {}
+    diagonal: false
+    error_score: .nan
+    estimator:
+      call: imblearn.pipeline.Pipeline
+      params:
+        memory: null
+        steps:
+        - - targetkernellinearcombiner
+          - call: bipartite_learn.wrappers.MultipartiteSamplerWrapper
+            params:
+              ndim: 2
+              samplers:
+                call: bipartite_learn.preprocessing.monopartite.TargetKernelLinearCombiner
+                params:
+                  alpha: 0.5
+                  filter_params: false
+                  gamma: 1.0
+                  gamma_scale: squares
+                  metric: rbf
+                  n_jobs: null
+        - - localmultioutputwrapper
+          - call: bipartite_learn.wrappers.LocalMultiOutputWrapper
+            params:
+              combine_func_kwargs: null
+              combine_predictions_func:
+                load: numpy.mean
+              independent_labels: false
+              primary_cols_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              primary_rows_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              secondary_cols_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+              secondary_rows_estimator:
+                call: sklearn.kernel_ridge.KernelRidge
+                params:
+                  alpha: 1
+                  coef0: 1
+                  degree: 3
+                  gamma: null
+                  kernel: precomputed
+                  kernel_params: null
+        verbose: false
+    n_jobs: 4
+    pairwise: true
+    param_grid:
+      targetkernellinearcombiner__samplers__alpha:
+      - 0.0
+      - 0.1
+      - 0.25
+      - 0.5
+      - 0.75
+      - 0.9
+      - 1.0
+    pre_dispatch: 2*n_jobs
+    refit: true
+    return_train_score: false
+    scoring: average_precision
+    train_test_combinations: null
+    verbose: 0
+  name: lmo_rls
+  params: {}
+hash: 95758162ee53c9b0d5bfc46e8b936ff0cb458f7f8508420c5c4250049831b224
+path: /home/pedro/master_thesis/experiments/literature_models/runs/9575816_20231205T195603377876_lmo_rls_srn.yml
+results:
+  LL_average_precision:
+  - 0.05454112918142891
+  - 0.08454689620948384
+  - 0.06132065551755935
+  - 0.03548137103612025
+  - 0.05402337563195279
+  - 0.08314336662831355
+  - 0.059325270708241166
+  - 0.053306016612727575
+  - 0.08735172100372326
+  - 0.08370261239605215
+  - 0.061786607394832244
+  - 0.0833689055236117
+  - 0.05341915084273878
+  - 0.07925131688169049
+  - 0.03578793140639169
+  - 0.030297552643147818
+  LL_roc_auc:
+  - 0.727126757427729
+  - 0.8071138234575033
+  - 0.7269075841206815
+  - 0.6117968389257017
+  - 0.7400264856604575
+  - 0.8034012454951563
+  - 0.7288045219880674
+  - 0.7349101294504867
+  - 0.8325349663204514
+  - 0.8085896126925138
+  - 0.7324678161448129
+  - 0.8150018367854721
+  - 0.7496249946976439
+  - 0.8100492720005785
+  - 0.617012002864996
+  - 0.5718997855239947
+  LT_average_precision:
+  - 0.03914848617581999
+  - 0.02037208181825622
+  - 0.019627065929937824
+  - 0.024216386355016474
+  - 0.041360474861121
+  - 0.019759239850122463
+  - 0.02097296140104602
+  - 0.026805481621869374
+  - 0.036333510066013486
+  - 0.019752408775586042
+  - 0.019918546657501
+  - 0.025133059237616055
+  - 0.042672318308510454
+  - 0.0192101928104449
+  - 0.02100138807184858
+  - 0.02323800041212106
+  LT_roc_auc:
+  - 0.5850740704556705
+  - 0.5771698265835417
+  - 0.5624296473461317
+  - 0.5757905366528033
+  - 0.6166470939060061
+  - 0.567838983592281
+  - 0.5856920573731751
+  - 0.6201078053294802
+  - 0.5663476801265417
+  - 0.5620920036991728
+  - 0.5825166489476761
+  - 0.5856723620891578
+  - 0.6022850684598234
+  - 0.5651368551291579
+  - 0.5487123838763466
+  - 0.5361953805466351
+  TL_average_precision:
+  - 0.03389192942179907
+  - 0.04918640901093091
+  - 0.036239002808599804
+  - 0.03570960091827419
+  - 0.03899528823988663
+  - 0.047578031846575476
+  - 0.03781095115439588
+  - 0.03726007688719582
+  - 0.028606430080197302
+  - 0.042383507506554105
+  - 0.0367790992275803
+  - 0.036956748649009996
+  - 0.022182128791310173
+  - 0.0318828703774908
+  - 0.023364066687606745
+  - 0.0193867155640667
+  TL_roc_auc:
+  - 0.6272510528454491
+  - 0.6673692085283621
+  - 0.6433204763054008
+  - 0.5715521652623844
+  - 0.6455750159785807
+  - 0.6643485134168605
+  - 0.6337796470843355
+  - 0.6176946128846588
+  - 0.6561346812588413
+  - 0.6934473746204344
+  - 0.6566099682545264
+  - 0.6753061557100695
+  - 0.6266247536693862
+  - 0.6539863519416564
+  - 0.5638142181163076
+  - 0.5365555494110839
+  TT_average_precision:
+  - 0.03794655716860321
+  - 0.01916641610647196
+  - 0.03527537876359042
+  - 0.020922094969098345
+  - 0.036483906944153884
+  - 0.01940241955201781
+  - 0.028769682575947482
+  - 0.024628916731741037
+  - 0.04108549159310257
+  - 0.01904882761815064
+  - 0.015443835273984796
+  - 0.02747855908366688
+  - 0.030798987898165344
+  - 0.018124010793462427
+  - 0.011865248478712839
+  - 0.019302283485750756
+  TT_roc_auc:
+  - 0.5870427178475363
+  - 0.5537378752122528
+  - 0.5945184857810366
+  - 0.536060745963793
+  - 0.5526220957799906
+  - 0.5461191025372195
+  - 0.5339192910893344
+  - 0.593232299018955
+  - 0.5944041471523945
+  - 0.5755590963006169
+  - 0.5413149717320775
+  - 0.5996908200121887
+  - 0.5636420100920186
+  - 0.5760465842186273
+  - 0.5223089569160998
+  - 0.5232596046205513
+  fit_time:
+  - 60.300605058670044
+  - 61.055006980895996
+  - 60.96369671821594
+  - 63.37597131729126
+  - 62.16366362571716
+  - 63.45941495895386
+  - 58.78765273094177
+  - 62.77243995666504
+  - 62.51959800720215
+  - 63.90630054473877
+  - 62.64708662033081
+  - 61.96441626548767
+  - 63.261138916015625
+  - 63.493321895599365
+  - 64.67680835723877
+  - 59.04625463485718
+  score_time:
+  - 1.7467641830444336
+  - 1.7717108726501465
+  - 1.7687129974365234
+  - 1.7140226364135742
+  - 1.8051323890686035
+  - 1.723412036895752
+  - 1.6869676113128662
+  - 1.7108232975006104
+  - 1.7220587730407715
+  - 1.6636958122253418
+  - 1.6960339546203613
+  - 1.7272703647613525
+  - 1.752631664276123
+  - 1.7233469486236572
+  - 1.7193303108215332
+  - 1.704610824584961
+start: 2023-12-05 19:56:03.377876
+wrapper: null
