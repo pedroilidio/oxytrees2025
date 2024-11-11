@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import joblib
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, _fit_context, clone
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils._param_validation import HasMethods
@@ -120,6 +121,23 @@ class ModelForestRegressor(ForestRegressor, MetaEstimatorMixin):
             )
             self.estimators_.append(model_tree.fit(X, y))
         return self
+    
+    def predict(self, X):
+        def _predict_tree(tree):
+            return tree.predict(X)
+
+        predictions = joblib.Parallel(
+            n_jobs=self.n_jobs,
+            # return_as="generator_unordered",  # Not supported by multiprocessing
+            backend="multiprocessing",  # Threads will not work with ModelTree
+            verbose=self.verbose,
+        )(
+            joblib.delayed(_predict_tree)(tree)
+            for tree in self.estimators_
+        )
+
+        summed_predictions = sum(predictions)
+        return summed_predictions / self.n_estimators
 
     def __sklearn_is_fitted__(self):
         return hasattr(self, "estimators_")

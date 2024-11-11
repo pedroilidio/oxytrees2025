@@ -1,16 +1,14 @@
 import numpy as np
-import bipartite_learn.ensemble
 from bipartite_learn.pipeline import make_multipartite_pipeline
-from sklearn.utils import check_random_state
 from sklearn.base import clone
 from sklearn.preprocessing import FunctionTransformer
+from bipartite_learn.preprocessing.monopartite import SymmetryEnforcer
 
-import bipartite_positive_dropper
-from wrappers import regressor_to_binary_classifier
-
+import wrappers
 from semisupervised_forests.estimators import ss_bxt_gso__md_size
 from model_forests.bipartite_model_trees import BipartiteModelForestRegressor
 from model_forests.dwnn import KroneckerWeightedNeighbors
+from y_reconstruction.estimators import nrlmf_grid
 
 COMMON_PARAMS = dict(
     bipartite_adapter="gmosa",
@@ -32,7 +30,9 @@ def square(X):
 
 ss_bxt_gso__md_size = clone(ss_bxt_gso__md_size).set_params(**COMMON_PARAMS)
 
-bxt_gso__md_size__sq = make_multipartite_pipeline(
+nrlmf__bxt_gso__md_size__sq = make_multipartite_pipeline(
+    SymmetryEnforcer(),
+    wrappers.ClassifierAsSampler(nrlmf_grid, keep_positives=True),
     FunctionTransformer(square),
     BipartiteModelForestRegressor(
         estimator=ss_bxt_gso__md_size,

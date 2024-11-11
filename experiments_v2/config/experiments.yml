@@ -1,0 +1,128 @@
+test:
+  active: true
+  description: Test the configuration of the experiments.
+  estimator: [bxt_gmo]
+  dataset: [dpi_e]
+  scoring: [auroc, auprc]
+  validation_setting: [LL, TT, LT, TL, TT_50]
+  n_jobs: 1
+
+
+literature_methods:
+  active: false
+  description: Compare our model against prominent strategies from previous literature.
+  n_jobs: &default_n_jobs 1
+  scoring: &default_scoring [auroc, auprc]
+
+  dataset:  &all_datasets
+  - dpi_n
+  - dpi_g
+  - davis
+  - dpi_i
+  - dpi_e
+  - srn
+  - ern
+  - kiba
+  - npinter
+  - mirtarbase
+
+  validation_setting:  &all_validation_settings
+  - TT
+  - LT
+  - TL
+  - LL
+
+  - TT_25
+  - TT_50
+  - TT_75
+
+  - LT_25
+  - LT_50
+  - LT_75
+
+  - TL_25
+  - TL_50
+  - TL_75
+
+  estimator:
+  - our_final_method  # TODO
+  - bxt_gmo
+  - kron_rls
+  - blmnii_rls
+  - blmnii_svm
+  - nrlmf
+  - dnilmf
+  - dwnn
+  - lmo_rls
+  - dthybrid
+  - mlp
+  - ncf
+  - deepfm
+
+
+unsupervised_impurities:
+  active: false
+  description: Test different unsupervised impurities.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
+  estimator:
+  - ss_mse_bxt_bgso
+  - ss_md_bxt_bgso
+  - ss_ad_mse_bxt_bgso
+  - ss_ad_md_bxt_bgso
+
+
+dynamic_supervision:
+  active: false
+  description: Different strategies for setting the supervision balance at each node.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
+  estimator:
+  - ss_md_fixed_bxt_bgso
+  - ss_md_node_size_bxt_bgso
+  - ss_md_node_inverse_size_bxt_bgso
+  - ss_md_node_density_bxt_bgso
+  - ss_md_node_inverse_density_bxt_bgso
+
+
+dwnn_model_forests:
+  active: false
+  description: Test different weighting strategies in each tree leaf.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
+  estimator:
+  - uniform_bxt_bgso
+  - dwnn_square_bxt_bgso
+  - dwnn_softmax_bxt_bgso
+  - dwnn_similarities_bxt_bgso
+  - dwnn_max_bxt_bgso
+  - dwnn_conditional_uniform_bxt_bgso
+
+
+ss_model_forests:
+  active: false
+  description: Combine model forests with semi-supervised impurities.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
+  estimator:
+  - ss_md_node_size_dwnn_square_bxt_gso
+  - ss_md_node_size_bxt_gso
+  - dwnn_square_bxt_bgso
+  - square_bxt_bgso
+  # ... (TODO)
+
+
+y_reconstruction:
+  active: false
+  description: Different strategies for reconstructing the interaction matrix.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
+  estimator:
+  - nrlmf_bxt_bgso
+  # - local_forests_bxt_bgso
+  # ... (TODO)
