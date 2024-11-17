@@ -1,7 +1,13 @@
+import traceback
+import logging
+import tempfile
+from typing import Any
+import sys
 import warnings
 from pathlib import Path
 from itertools import product
 from importlib import import_module
+import multiprocessing as mp
 
 import numpy as np
 import yaml
@@ -9,22 +15,51 @@ import click
 import joblib
 from sklearn.base import clone
 import mlflow
+from mlflow import MlflowClient
 from mlflow.types import TensorSpec, Schema
 from mlflow.models.signature import ModelSignature
 
-# TODO: rename masked_positives
 # TODO: dependency injection for folds, dataset splits, etc.
 
+# TODO: include number of features
 BIPARTITE_SIGNATURE = ModelSignature(
     inputs=Schema([TensorSpec(type=np.dtype("float32"), shape=(2, -1, -1))]),
     outputs=Schema([TensorSpec(type=np.dtype("float64"), shape=(-1,))]),
 )
 
 
-def load_python_object(obj_path):
-    module_name, obj_name = obj_path.rsplit(".", 1)
+def log_sklearn_model(client, estimator, run_id, module_path):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        mlflow.sklearn.save_model(
+            estimator,
+            path=tmpdir,
+            signature=BIPARTITE_SIGNATURE,
+            code_paths=[module_path],
+            # TODO: Tensors are currently not supported by MLflow
+            # input_example=[X[0][:2], X[1][:3]],
+        )
+        client.log_artifact(run_id, local_path=tmpdir, artifact_path="model")
+        client.log_dict(run_id, estimator.get_params(), "estimator_params.yml")
+        client.log_param(run_id, "estimator_class", estimator.__class__.__name__)
+        client.log_param(run_id, "estimator_module", module_path)
+
+
+def load_python_object(
+    object_path: str,
+    code_paths: list[Path] | None = None,
+) -> tuple[Any, str]:
+
+    module_name, obj_name = object_path.rsplit(".", 1)
+
+    if code_paths:
+        sys.path.extend(str(p.resolve()) for p in code_paths)
+
     module = import_module(module_name)
-    return getattr(module, obj_name)
+
+    if code_paths:
+        sys.path = sys.path[: -len(code_paths)]
+
+    return getattr(module, obj_name), module.__file__
 
 
 # Just for modularity, may change in the future
@@ -73,51 +108,83 @@ def apply_estimator(estimator, masked_positives, dataset_split):
     estimator.fit([X_rows_LL, X_cols_LL], y_LL_masked)
 
     predictions = {
-        key: (y.reshape(-1), estimator.predict([X_rows, X_cols]))
+        key: {
+            "targets": y.reshape(-1).tolist(),
+            "predictions": estimator.predict([X_rows, X_cols]).tolist(),
+        }
         for key, (X_rows, X_cols, y) in dataset_split.items()
         if y.size > 0
     }
 
     if masked_positives:
-        y_LL, pred_LL = predictions["LL"]
-        predictions["LL_M"] = (
-            y_LL.flat[masked_indices],
-            pred_LL.flat[masked_indices],
-        )
+        y_true = predictions["LL"]["targets"]
+        y_pred = predictions["LL"]["predictions"]
+
+        # TODO: avoid conversion to array again
+        predictions["LL_M"] = {
+            "targets": np.array(y_true)[masked_indices].tolist(),
+            "predictions": np.array(y_pred)[masked_indices].tolist(),
+        }
 
     return estimator, predictions
 
 
-def execute_fold_run(*, estimator, scoring_functions, dataset, X, y, fold_index, fold):
-    with mlflow.start_run(run_name=f"fold_{fold_index}", nested=True):
-        mlflow.set_tag("fold_index", fold_index)
-        mlflow.log_dict(fold, "fold_definition.yml")
+def execute_fold_run(
+    *,
+    client,
+    estimator,
+    scoring_functions,
+    dataset_data,
+    X,
+    y,
+    fold_index,
+    fold_definition,
+    parent_run_id,
+    experiment_id,
+):
+    fold_run = client.create_run(
+        experiment_id=experiment_id,
+        run_name=f"fold_{fold_index}",
+        tags={"fold_index": fold_index, "mlflow.parentRunId": parent_run_id},
+    )
+    fold_run_id = fold_run.info.run_id
+    client.log_dict(fold_run.info.run_id, fold_definition, "fold_definition.yml")
 
+    try:
         dataset_split = split_bipartite_dataset(
             X,
             y,
-            test_rows=fold["test_rows"],
-            test_cols=fold["test_cols"],
-            pairwise=dataset["pairwise"],
+            test_rows=fold_definition["test_rows"],
+            test_cols=fold_definition["test_cols"],
+            pairwise=dataset_data["pairwise"],
         )
         estimator, predictions = apply_estimator(
             estimator=estimator,
-            masked_positives=fold["masked_positives"],
+            masked_positives=fold_definition["masked_positives"],
             dataset_split=dataset_split,
         )
+        client.log_dict(fold_run_id, predictions, "predictions.yml")
 
         for scoring_name, scoring_func in scoring_functions.items():
-            for setting_name, (y_true, y_pred) in predictions.items():
-                mlflow.log_metric(
-                    f"{scoring_name}__{setting_name}",
-                    scoring_func(y_true, y_pred),
+            for setting_name, pred in predictions.items():
+                client.log_metric(
+                    fold_run_id,
+                    f"{setting_name}__{scoring_name}",
+                    scoring_func(pred["targets"], pred["predictions"]),
                 )
+
+        client.set_terminated(fold_run_id)
+
+    except Exception as e:
+        client.log_text(fold_run_id, str(e), "error_message.txt")
+        client.log_text(fold_run_id, traceback.format_exc(), "error_traceback.txt")
+        client.set_terminated(fold_run_id, status="FAILED")
 
 
 # TODO: define error messages
 # TODO: use mlflow Dataset API
 # TODO: save models/predictions
-# TODO: rename fold to split
+# TODO: rename fold to split?
 
 
 @click.command()
@@ -143,7 +210,7 @@ def execute_fold_run(*, estimator, scoring_functions, dataset, X, y, fold_index,
     "--experiment-definitions",
     type=click.File("r"),
     required=True,
-    help="YAML file with experiment definitions.",
+    help="YAML file with experimentdefinitions.",
 )
 @click.option(
     "--scoring-definitions",
@@ -157,6 +224,24 @@ def execute_fold_run(*, estimator, scoring_functions, dataset, X, y, fold_index,
     required=True,
     help="Output directory for storing results.",
 )
+@click.option(
+    "--n-jobs",
+    type=int,
+    default=1,
+    help=(
+        "Number of parallel jobs. Set to 0 to use all available cores, set to a"
+        " negative value to use all but the specified number of cores."
+    ),
+)
+@click.option(
+    "--code-path",
+    type=click.Path(file_okay=False, path_type=Path),
+    multiple=True,
+    help=(
+        "Path to directory from where unfitted estimators and scoring functions can be"
+        " imported."
+    ),
+)
 def main(
     estimator_definitions,
     dataset_definitions,
@@ -164,12 +249,18 @@ def main(
     experiment_definitions,
     scoring_definitions,
     output_directory,
+    n_jobs,
+    code_path,
 ):
-    mlflow.set_tracking_uri(output_directory.resolve().as_uri())
-    # HACK: enable loading models from the same repository
-    import sys
+    if n_jobs < 1:
+        n_jobs = mp.cpu_count() + n_jobs
 
-    sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
+    artifact_location = output_directory.resolve().as_uri()
+    client = MlflowClient(tracking_uri=artifact_location)
+    pool = mp.Pool(n_jobs)
+
+    logger = logging.getLogger("mlflow")
+    logger.setLevel(logging.DEBUG)
 
     estimators = yaml.safe_load(estimator_definitions)
     datasets = yaml.safe_load(dataset_definitions)
@@ -179,54 +270,72 @@ def main(
 
     order = ("validation_setting", "estimator", "dataset")
 
-    for experiment_name, experiment in experiments.items():
-        if experiment["active"] is False:
-            warnings.warn(f"Skipping inactive experiment: {experiment_name}")
+    for experiment_name, experiment_data in experiments.items():
+        if experiment_data["active"] is False:
+            warnings.warn(f"Skipping inactive experiment_data: {experiment_name}")
             continue
-        mlflow.set_experiment(experiment_name=experiment_name)
-        mlflow.set_experiment_tag("mlflow.note.content", experiment["description"])
+
+        experiment = client.get_experiment_by_name(experiment_name)
+
+        if experiment is None:
+            experiment_id = client.create_experiment(
+                name=experiment_name,
+                artifact_location=artifact_location,
+                tags={"mlflow.note.content": experiment_data["description"]},
+            )
+        else:
+            experiment_id = experiment.experiment_id
 
         scoring_functions = {
-            scoring_name: load_python_object(scoring_definitions[scoring_name])
-            for scoring_name in experiment["scoring"]
+            scoring_name: load_python_object(
+                scoring_definitions[scoring_name],
+                code_path,
+            )[0]
+            for scoring_name in experiment_data["scoring"]
         }
 
-        for run_data in product(*(experiment[key] for key in order)):
+        for run_data in product(*(experiment_data[key] for key in order)):
             run_dict = {key: value for key, value in zip(order, run_data)}
             run_name = "{dataset}__{estimator}__{validation_setting}".format(**run_dict)
 
-            with mlflow.start_run(run_name=run_name):
-                mlflow.set_tags(run_dict)
+            run_id = client.create_run(
+                run_name=run_name,
+                experiment_id=experiment_id,
+                tags=run_dict,
+            ).info.run_id
 
-                dataset = datasets[run_dict["dataset"]]
-                folds = fold_definitions[run_dict["dataset"]][
-                    run_dict["validation_setting"]
-                ]
-                estimator = load_python_object(estimators[run_dict["estimator"]])
+            dataset_data = datasets[run_dict["dataset"]]
+            folds = fold_definitions[run_dict["dataset"]][
+                run_dict["validation_setting"]
+            ]
+            estimator, module_path = load_python_object(
+                estimators[run_dict["estimator"]], code_path
+            )
 
-                X = [load_matrix(path) for path in dataset["X"]]
-                y = load_matrix(dataset["y"])
+            X = [load_matrix(path) for path in dataset_data["X"]]
+            y = load_matrix(dataset_data["y"])
 
-                mlflow.sklearn.log_model(
-                    estimator,
-                    "estimator",
-                    signature=BIPARTITE_SIGNATURE,
-                    # TODO: Tensors are currently not supported by MLflow
-                    # input_example=[X[0][:2], X[1][:3]],
+            log_sklearn_model(client, estimator, run_id, module_path)
+
+            for fold_index, fold_definition in enumerate(folds):
+                kwds = dict(
+                    client=client,
+                    parent_run_id=run_id,
+                    experiment_id=experiment_id,
+                    estimator=estimator,
+                    X=X,
+                    y=y,
+                    scoring_functions=scoring_functions,
+                    dataset_data=dataset_data,
+                    fold_index=fold_index,
+                    fold_definition=fold_definition,
                 )
+                pool.apply_async(execute_fold_run, kwds=kwds)
 
-                joblib.Parallel(n_jobs=experiment["n_jobs"])(
-                    joblib.delayed(execute_fold_run)(
-                        estimator=estimator,
-                        X=X,
-                        y=y,
-                        scoring_functions=scoring_functions,
-                        dataset=dataset,
-                        fold_index=fold_index,
-                        fold=fold,
-                    )
-                    for fold_index, fold in enumerate(folds)
-                )
+            pool.apply_async(client.set_terminated, args=(run_id,))
+
+    pool.close()
+    pool.join()
 
 
 if __name__ == "__main__":
