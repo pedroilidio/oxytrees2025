@@ -207,11 +207,16 @@ def execute_fold_run(
     fold_definition,
     parent_run_id,
     experiment_id,
+    parent_run_tags,
 ):
     fold_run = client.create_run(
         experiment_id=experiment_id,
         run_name=f"fold_{fold_index}",
-        tags={"fold_index": fold_index, "mlflow.parentRunId": parent_run_id},
+        tags={
+            "fold_index": fold_index,
+            "mlflow.parentRunId": parent_run_id,
+            **parent_run_tags,
+        },
     )
     fold_run_id = fold_run.info.run_id
     client.log_dict(fold_run.info.run_id, fold_definition, "fold_definition.yml")
@@ -396,7 +401,7 @@ def main(
 
                 log_sklearn_model(client, run_id, estimator, estimator_code_paths)
 
-                for fold_index, fold_definition in enumerate(folds):
+                def process_fold(fold_index, fold_definition):
                     if skip_finished:
                         if fold_run_is_finished(
                             client=client,
@@ -408,11 +413,9 @@ def main(
                                 f"Skipping finished run: {run_name},"
                                 f" fold {fold_index}"
                             )
-                            continue
+                            return
 
-                    pool.apply_async(
-                        execute_fold_run,
-                        kwds=dict(
+                    execute_fold_run(
                             client=client,
                             parent_run_id=run_id,
                             experiment_id=experiment_id,
@@ -423,10 +426,20 @@ def main(
                             dataset_data=dataset_data,
                             fold_index=fold_index,
                             fold_definition=fold_definition,
-                        ),
-                    )
+                            parent_run_tags=run_dict,
+                        )
+                    return run_id
+                
+                def terminate_runs(runs):
+                    for run_id in set(runs):
+                        if run_id is not None:
+                            client.set_terminated(run_id)
 
-                pool.apply_async(client.set_terminated, args=(run_id,))
+                pool.starmap_async(
+                    process_fold,
+                    enumerate(folds),
+                    callback=terminate_runs,
+                )
 
         pool.close()
         pool.join()
