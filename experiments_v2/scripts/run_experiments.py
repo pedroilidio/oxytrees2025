@@ -28,9 +28,50 @@ BIPARTITE_SIGNATURE = ModelSignature(
 )
 
 
-# TODO
-def fold_run_is_finished(client, fold_run_name, parent_run_name):
-    ...
+def fold_run_is_finished(*, client, experiment_id, fold_index, parent_run_id):
+    runs = client.search_runs(
+        filter_string=(
+            f"tags.mlflow.parentRunId = '{parent_run_id}'"
+            f" AND tags.fold_index = '{fold_index}'"
+            f" AND status = 'FINISHED'"
+        ),
+        experiment_ids=experiment_id,
+        max_results=1,
+    )
+    return bool(runs)  # If any run is found, the fold is considered finished
+
+
+def get_run_id_from_name(*, client, experiment_id, run_name, tags):
+    runs = client.search_runs(
+        experiment_ids=experiment_id,
+        filter_string=f"run_name = '{run_name}'",
+        max_results=1,
+    )
+    if runs:
+        run_id = runs[0].info.run_id
+        client.update_run(run_id, status="RUNNING")
+        return run_id
+
+    return client.create_run(
+        run_name=run_name,
+        experiment_id=experiment_id,
+        tags=tags,
+    ).info.run_id
+
+
+def get_experiment_id_from_name(
+    *, client, experiment_name, artifact_location, description
+):
+    experiment = client.get_experiment_by_name(experiment_name)
+
+    if experiment is None:
+        return client.create_experiment(
+            name=experiment_name,
+            artifact_location=artifact_location,
+            tags={"mlflow.note.content": description}
+        )
+
+    return experiment.experiment_id
 
 
 # HACK
@@ -315,17 +356,12 @@ def main(
                 warnings.warn(f"Skipping inactive experiment_data: {experiment_name}")
                 continue
 
-            experiment = client.get_experiment_by_name(experiment_name)
-
-            if experiment is None:
-                experiment_id = client.create_experiment(
-                    name=experiment_name,
-                    artifact_location=artifact_location,
-                    tags={"mlflow.note.content": experiment_data["description"]},
-                )
-            else:
-                experiment_id = experiment.experiment_id
-
+            experiment_id = get_experiment_id_from_name(
+                client=client,
+                experiment_name=experiment_name,
+                artifact_location=artifact_location,
+                description=experiment_data["description"],
+            )
             scoring_functions = {
                 scoring_name: load_python_object(
                     scoring_definitions[scoring_name],
@@ -340,23 +376,12 @@ def main(
                     **run_dict
                 )
 
-                # Skip if already ran
-                # TODO: test this per fold
-                if skip_finished:
-                    filter_string = f"run_name = '{run_name}' and status = 'FINISHED'"
-                    if not client.search_runs(
-                        filter_string=filter_string,
-                        experiment_ids=experiment_id,
-                        max_results=1,
-                    ).empty:
-                        warnings.warn(f"Skipping finished run: {run_name}")
-                        continue
-
-                run_id = client.create_run(
-                    run_name=run_name,
+                run_id = get_run_id_from_name(
+                    client=client,
                     experiment_id=experiment_id,
+                    run_name=run_name,
                     tags=run_dict,
-                ).info.run_id
+                )
 
                 dataset_data = datasets[run_dict["dataset"]]
                 folds = fold_definitions[run_dict["dataset"]][
@@ -372,6 +397,19 @@ def main(
                 log_sklearn_model(client, run_id, estimator, estimator_code_paths)
 
                 for fold_index, fold_definition in enumerate(folds):
+                    if skip_finished:
+                        if fold_run_is_finished(
+                            client=client,
+                            experiment_id=experiment_id,
+                            parent_run_id=run_id,
+                            fold_index=fold_index,
+                        ):
+                            warnings.warn(
+                                f"Skipping finished run: {run_name},"
+                                f" fold {fold_index}"
+                            )
+                            continue
+
                     pool.apply_async(
                         execute_fold_run,
                         kwds=dict(
