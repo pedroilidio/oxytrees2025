@@ -9,8 +9,7 @@ from sklearn.utils._param_validation import HasMethods
 from sklearn.exceptions import NotFittedError
 from bipartite_learn.ensemble._forest import BaseMultipartiteForest
 
-sys.path.insert(0, str(Path(__file__).parent))
-from model_trees import ModelForestRegressor
+from .model_trees import ModelForestRegressor
 
 
 class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):

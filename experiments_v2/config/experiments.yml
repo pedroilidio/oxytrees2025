@@ -1,17 +1,17 @@
-test:
-  active: true
+small_test:
+  active: false
   description: Test the configuration of the experiments.
-  estimator: [bxt_gmo]
+  # estimator: [dwnn_square_bxt_bgso]
+  estimator: [small_bxt_gmo]
   dataset: [dpi_e]
   scoring: [auroc, auprc]
   validation_setting: [LL, TT, LT, TL, TT_50]
 
 
-literature_methods:
+test_all_datasets:
   active: false
-  description: Compare our model against prominent strategies from previous literature.
-  scoring: &default_scoring [auroc, auprc]
-
+  description: Test the validation configuration of all datsets.
+  estimator: [small_bxt_gmo]
   dataset:  &all_datasets
   - dpi_n
   - dpi_g
@@ -23,16 +23,17 @@ literature_methods:
   - kiba
   - npinter
   - mirtarbase
-
+  scoring: &default_scoring [auroc, auprc]
   validation_setting:  &all_validation_settings
+  # Most important settings first
   - TT
+  - TT_50
+  - TT_25
+  - TT_75
+
   - LT
   - TL
   - LL
-
-  - TT_25
-  - TT_50
-  - TT_75
 
   - LT_25
   - LT_50
@@ -42,6 +43,13 @@ literature_methods:
   - TL_50
   - TL_75
 
+
+literature_methods:
+  active: false
+  description: Compare our model against prominent strategies from previous literature.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
   estimator:
   - our_final_method  # TODO
   - bxt_gmo
@@ -124,3 +132,41 @@ y_reconstruction:
   - nrlmf_bxt_bgso
   # - local_forests_bxt_bgso
   # ... (TODO)
+
+
+all_models:
+  active: true
+  description: Run all experiments.
+  scoring: *default_scoring
+  dataset: *all_datasets
+  validation_setting: *all_validation_settings
+  estimator:
+  - bxt_bgso
+  - dwnn_square_bxt_bgso
+  - dwnn_softmax_bxt_bgso
+  - dwnn_similarities_bxt_bgso
+  - dwnn_max_bxt_bgso
+  - dwnn_conditional_uniform_bxt_bgso
+  - uniform_bxt_bgso
+
+  - ss_mse_bxt_bgso
+  - ss_md_bxt_bgso
+  - ss_ad_bxt_bgso
+
+  - ss_md_fixed_bxt_bgso
+  - ss_md_random_bxt_bgso
+  - ss_md_size_bxt_bgso
+  - ss_md_inverse_size_bxt_bgso
+
+  - ss_md_density_bxt_bgso
+  - ss_md_inverse_density_bxt_bgso
+
+  - bxt_gmo
+  - mlp
+  - kron_rls
+  - lmo_rls
+  - dthybrid_regressor
+  - blmnii_rls
+  - blmnii_svm
+  # - nrlmf
+  # - dnilmf

@@ -29,7 +29,6 @@ uniform_bxt_bgso = BipartiteExtraTreesRegressor(
     bootstrap=False,
     random_state=0,
     verbose=10,
-    n_jobs=4,
 )
 
 dwnn_max_bxt_bgso = BipartiteModelForestRegressor(

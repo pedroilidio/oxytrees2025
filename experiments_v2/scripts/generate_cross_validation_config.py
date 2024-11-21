@@ -161,7 +161,7 @@ def main(
         random_state = cv_config["random_state"]
 
         print("- Processing dataset:", dataset_name)
-        y = np.loadtxt(dataset_config["y"])
+        y = np.load(dataset_config["y"])
 
         out[dataset_name] = {}
         cv_settings = (
