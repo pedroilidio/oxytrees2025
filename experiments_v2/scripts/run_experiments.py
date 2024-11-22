@@ -1,7 +1,6 @@
 import traceback
 import logging
 from typing import Any
-from types import ModuleType
 import sys
 import warnings
 from pathlib import Path
@@ -12,12 +11,11 @@ import multiprocessing as mp
 import numpy as np
 import yaml
 import click
-import joblib
 from sklearn.base import clone
-import mlflow
 from mlflow import MlflowClient
 from mlflow.types import TensorSpec, Schema
 from mlflow.models.signature import ModelSignature
+from tqdm import tqdm
 
 # TODO: dependency injection for folds, dataset splits, etc.
 
@@ -222,6 +220,7 @@ def execute_fold_run(
             raise e
         except KeyboardInterrupt:
             client.update_run(fold_run_id, status="INTERRUPTED")
+            raise
 
 
 # TODO: define error messages
@@ -322,74 +321,78 @@ def main(
 
     order = ("validation_setting", "estimator", "dataset")
 
-    # TODO: check if try here is correct
-    try:
-        for experiment_name, experiment_data in experiments.items():
-            if experiment_data["active"] is False:
-                warnings.warn(f"Skipping inactive experiment_data: {experiment_name}")
-                continue
+    for experiment_name, experiment_data in experiments.items():
+        if experiment_data["active"] is False:
+            warnings.warn(f"Skipping inactive experiment_data: {experiment_name}")
+            continue
 
-            experiment_id = get_experiment_id_from_name(
-                client=client,
-                experiment_name=experiment_name,
-                artifact_location=artifact_location,
-                description=experiment_data["description"],
+        experiment_id = get_experiment_id_from_name(
+            client=client,
+            experiment_name=experiment_name,
+            artifact_location=artifact_location,
+            description=experiment_data["description"],
+        )
+        if skip_finished:
+            finished_runs = client.search_runs(
+                filter_string="status = 'FINISHED'",
+                experiment_ids=experiment_id,
             )
-            if skip_finished:
-                finished_runs = client.search_runs(
-                    filter_string="status = 'FINISHED'",
-                    experiment_ids=experiment_id,
-                )
-                finished_runs = {
-                    tuple(map(run.data.tags.get, order + ("fold_index",)))
-                    for run in finished_runs
-                }
-
-            scoring_functions = {
-                scoring_name: load_python_object(
-                    scoring_definitions[scoring_name],
-                    code_path,
-                )[0]
-                for scoring_name in experiment_data["scoring"]
+            
+            print("Collecting finished runs...")
+            finished_runs = {
+                tuple(map(run.data.tags.get, order + ("fold_index",)))
+                for run in tqdm(finished_runs, desc="Loading finished runs")
             }
 
-            for run_data in product(*map(experiment_data.get, order)):
-                run_dict = {key: value for key, value in zip(order, run_data)}
-                dataset_data = datasets[run_dict["dataset"]]
-                folds = fold_definitions[run_dict["dataset"]][
-                    run_dict["validation_setting"]
-                ]
-                estimator, estimator_code_paths = load_python_object(
-                    estimators[run_dict["estimator"]], code_path
+        scoring_functions = {
+            scoring_name: load_python_object(
+                scoring_definitions[scoring_name],
+                code_path,
+            )[0]
+            for scoring_name in experiment_data["scoring"]
+        }
+
+        print(f"Scheduling experiment {experiment_name}...")
+
+        for run_data in product(*map(experiment_data.get, order)):
+            run_dict = dict(zip(order, run_data))
+            dataset_data = datasets[run_dict["dataset"]]
+            folds = fold_definitions[run_dict["dataset"]][
+                run_dict["validation_setting"]
+            ]
+            estimator, estimator_code_paths = load_python_object(
+                estimators[run_dict["estimator"]], code_path
+            )
+
+            X = [load_matrix(path) for path in dataset_data["X"]]
+            y = load_matrix(dataset_data["y"])
+
+            for fold_index, fold_definition in enumerate(folds):
+                if skip_finished:
+                    fold_run_data = run_data + (str(fold_index),)
+                    if fold_run_data in finished_runs:
+                        warnings.warn(f"Skipping finished run: {fold_run_data}")
+                        continue
+
+                pool.apply_async(
+                    execute_fold_run,
+                    kwds=dict(
+                        client=client,
+                        experiment_id=experiment_id,
+                        estimator=estimator,
+                        estimator_code_paths=estimator_code_paths,
+                        X=X,
+                        y=y,
+                        scoring_functions=scoring_functions,
+                        dataset_data=dataset_data,
+                        fold_definition=fold_definition,
+                        tags=run_dict | {"fold_index": str(fold_index)},
+                    ),
                 )
 
-                X = [load_matrix(path) for path in dataset_data["X"]]
-                y = load_matrix(dataset_data["y"])
-
-                for fold_index, fold_definition in enumerate(folds):
-                    if skip_finished:
-                        fold_run_data = run_data + (str(fold_index),)
-                        if fold_run_data in finished_runs:
-                            warnings.warn(f"Skipping finished run: {fold_run_data}")
-                            continue
-
-                    pool.apply_async(
-                        execute_fold_run,
-                        kwargs=dict(
-                            client=client,
-                            experiment_id=experiment_id,
-                            estimator=estimator,
-                            estimator_code_paths=estimator_code_paths,
-                            X=X,
-                            y=y,
-                            scoring_functions=scoring_functions,
-                            dataset_data=dataset_data,
-                            fold_index=fold_index,
-                            fold_definition=fold_definition,
-                            tags=run_dict | {"fold_index": str(fold_index)},
-                        ),
-                    )
-
+    # TODO: check if try here is correct
+    try:
+        print("Running...")
         pool.close()
         pool.join()
 
@@ -397,6 +400,8 @@ def main(
         pool.terminate()
         pool.join()
         raise
+
+    print("Done.")
 
 
 if __name__ == "__main__":
