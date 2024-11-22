@@ -28,37 +28,6 @@ BIPARTITE_SIGNATURE = ModelSignature(
 )
 
 
-def fold_run_is_finished(*, client, experiment_id, fold_index, parent_run_id):
-    runs = client.search_runs(
-        filter_string=(
-            f"tags.mlflow.parentRunId = '{parent_run_id}'"
-            f" AND tags.fold_index = '{fold_index}'"
-            f" AND status = 'FINISHED'"
-        ),
-        experiment_ids=experiment_id,
-        max_results=1,
-    )
-    return bool(runs)  # If any run is found, the fold is considered finished
-
-
-def get_run_id_from_name(*, client, experiment_id, run_name, tags):
-    runs = client.search_runs(
-        experiment_ids=experiment_id,
-        filter_string=f"run_name = '{run_name}'",
-        max_results=1,
-    )
-    if runs:
-        run_id = runs[0].info.run_id
-        client.update_run(run_id, status="RUNNING")
-        return run_id
-
-    return client.create_run(
-        run_name=run_name,
-        experiment_id=experiment_id,
-        tags=tags,
-    ).info.run_id
-
-
 def get_experiment_id_from_name(
     *, client, experiment_name, artifact_location, description
 ):
@@ -68,7 +37,7 @@ def get_experiment_id_from_name(
         return client.create_experiment(
             name=experiment_name,
             artifact_location=artifact_location,
-            tags={"mlflow.note.content": description}
+            tags={"mlflow.note.content": description},
         )
 
     return experiment.experiment_id
@@ -199,27 +168,26 @@ def execute_fold_run(
     *,
     client,
     estimator,
+    estimator_code_paths,
     scoring_functions,
     dataset_data,
     X,
     y,
-    fold_index,
     fold_definition,
-    parent_run_id,
     experiment_id,
-    parent_run_tags,
+    tags,
 ):
+    keys = ("estimator", "dataset", "validation_setting", "fold_index")
     fold_run = client.create_run(
         experiment_id=experiment_id,
-        run_name=f"fold_{fold_index}",
-        tags={
-            "fold_index": fold_index,
-            "mlflow.parentRunId": parent_run_id,
-            **parent_run_tags,
-        },
+        run_name="__".join(map(tags.get, keys)),
+        tags=tags,
     )
     fold_run_id = fold_run.info.run_id
     client.log_dict(fold_run.info.run_id, fold_definition, "fold_definition.yml")
+
+    # TODO: Log fitted model?
+    log_sklearn_model(client, fold_run_id, estimator, estimator_code_paths)
 
     try:
         dataset_split = split_bipartite_dataset(
@@ -246,16 +214,14 @@ def execute_fold_run(
 
         client.set_terminated(fold_run_id)
 
-    except KeyboardInterrupt as e:
-        client.log_text(fold_run_id, str(e), "error_message.txt")
-        client.log_text(fold_run_id, traceback.format_exc(), "error_traceback.txt")
-        client.set_terminated(fold_run_id, status="INTERRUPTED")
-        raise
-
     except Exception as e:
         client.log_text(fold_run_id, str(e), "error_message.txt")
         client.log_text(fold_run_id, traceback.format_exc(), "error_traceback.txt")
         client.set_terminated(fold_run_id, status="FAILED")
+        try:
+            raise e
+        except KeyboardInterrupt:
+            client.update_run(fold_run_id, status="INTERRUPTED")
 
 
 # TODO: define error messages
@@ -344,6 +310,7 @@ def main(
     client = MlflowClient(tracking_uri=artifact_location)
     pool = mp.Pool(n_jobs)
 
+    # XXX
     logger = logging.getLogger("mlflow")
     logger.setLevel(logging.DEBUG)
 
@@ -355,6 +322,7 @@ def main(
 
     order = ("validation_setting", "estimator", "dataset")
 
+    # TODO: check if try here is correct
     try:
         for experiment_name, experiment_data in experiments.items():
             if experiment_data["active"] is False:
@@ -367,6 +335,16 @@ def main(
                 artifact_location=artifact_location,
                 description=experiment_data["description"],
             )
+            if skip_finished:
+                finished_runs = client.search_runs(
+                    filter_string="status = 'FINISHED'",
+                    experiment_ids=experiment_id,
+                )
+                finished_runs = {
+                    tuple(map(run.data.tags.get, order + ("fold_index",)))
+                    for run in finished_runs
+                }
+
             scoring_functions = {
                 scoring_name: load_python_object(
                     scoring_definitions[scoring_name],
@@ -375,19 +353,8 @@ def main(
                 for scoring_name in experiment_data["scoring"]
             }
 
-            for run_data in product(*(experiment_data[key] for key in order)):
+            for run_data in product(*map(experiment_data.get, order)):
                 run_dict = {key: value for key, value in zip(order, run_data)}
-                run_name = "{dataset}__{estimator}__{validation_setting}".format(
-                    **run_dict
-                )
-
-                run_id = get_run_id_from_name(
-                    client=client,
-                    experiment_id=experiment_id,
-                    run_name=run_name,
-                    tags=run_dict,
-                )
-
                 dataset_data = datasets[run_dict["dataset"]]
                 folds = fold_definitions[run_dict["dataset"]][
                     run_dict["validation_setting"]
@@ -399,47 +366,29 @@ def main(
                 X = [load_matrix(path) for path in dataset_data["X"]]
                 y = load_matrix(dataset_data["y"])
 
-                log_sklearn_model(client, run_id, estimator, estimator_code_paths)
-
-                def process_fold(fold_index, fold_definition):
+                for fold_index, fold_definition in enumerate(folds):
                     if skip_finished:
-                        if fold_run_is_finished(
-                            client=client,
-                            experiment_id=experiment_id,
-                            parent_run_id=run_id,
-                            fold_index=fold_index,
-                        ):
-                            warnings.warn(
-                                f"Skipping finished run: {run_name},"
-                                f" fold {fold_index}"
-                            )
-                            return
+                        fold_run_data = run_data + (str(fold_index),)
+                        if fold_run_data in finished_runs:
+                            warnings.warn(f"Skipping finished run: {fold_run_data}")
+                            continue
 
-                    execute_fold_run(
+                    pool.apply_async(
+                        execute_fold_run,
+                        kwargs=dict(
                             client=client,
-                            parent_run_id=run_id,
                             experiment_id=experiment_id,
                             estimator=estimator,
+                            estimator_code_paths=estimator_code_paths,
                             X=X,
                             y=y,
                             scoring_functions=scoring_functions,
                             dataset_data=dataset_data,
                             fold_index=fold_index,
                             fold_definition=fold_definition,
-                            parent_run_tags=run_dict,
-                        )
-                    return run_id
-                
-                def terminate_runs(runs):
-                    for run_id in set(runs):
-                        if run_id is not None:
-                            client.set_terminated(run_id)
-
-                pool.starmap_async(
-                    process_fold,
-                    enumerate(folds),
-                    callback=terminate_runs,
-                )
+                            tags=run_dict | {"fold_index": str(fold_index)},
+                        ),
+                    )
 
         pool.close()
         pool.join()
