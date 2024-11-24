@@ -21,10 +21,7 @@ class ProbaRegressor(MetaEstimatorMixin, BaseBipartiteEstimator, RegressorMixin)
         return self
     
     def predict(self, X):
-        proba = self.estimator_.predict_proba(X)
-        if isinstance(proba, list):  # Multilabel format
-            return np.hstack([p[:, -1] for p in proba])
-        return proba[:, -1]
+        return self.estimator_.predict_proba(X)[:, -1]
 
 class ProbaSampler(MetaEstimatorMixin, BaseMultipartiteSampler):
     def __init__(self, estimator):
@@ -33,11 +30,7 @@ class ProbaSampler(MetaEstimatorMixin, BaseMultipartiteSampler):
     def _fit_resample(self, X, y):
         self.estimator_ = clone(self.estimator)
         self.estimator_.fit(X, y)
-        proba = self.estimator_.predict_proba(X)
-
-        if isinstance(proba, list):  # Multilabel format
-            return X, np.hstack([p[:, -1] for p in proba])
-        return X, proba[:, -1]
+        return X, self.estimator_.predict_proba(X)[:, -1].reshape(y.shape)
 
 
 RSTATE = 0

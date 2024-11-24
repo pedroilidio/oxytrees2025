@@ -16,6 +16,19 @@ def symmetrize(X):
             "Asymmetries detected in the input matrix. Absolute differences:"
             f"\n{diff[asymmetry_mask]}"
         )
+    if X.min() < 0:
+        warnings.warn(
+            "Negative values detected in the input matrix. Minimum value:"
+            f"\n{X.min()}"
+        )
+    if X.max() > 1:
+        warnings.warn(
+            "Values greater than 1 detected in the input matrix. Maximum value:"
+            f"\n{X.max()}"
+        )
+    
+    X = np.clip(X, 0, 1)
+
     return (X + X.T) / 2
 
 
