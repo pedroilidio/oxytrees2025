@@ -1,6 +1,7 @@
 import traceback
 import logging
 from typing import Any
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -302,6 +303,15 @@ def main(
 ):
     if n_jobs < 1:
         n_jobs = mp.cpu_count() + n_jobs
+
+    # Avoid parallelism in the backend side of some libraries.
+    for var in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "BLIS_NUM_THREADS",
+    ):
+        os.environ[var] = "1"
 
     sys.path.extend(map(str, code_path))  # HACK
 

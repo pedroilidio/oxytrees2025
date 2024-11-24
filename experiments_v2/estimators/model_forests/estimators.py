@@ -4,8 +4,8 @@ from sklearn.preprocessing import FunctionTransformer
 from bipartite_learn.ensemble import BipartiteExtraTreesRegressor
 from bipartite_learn.pipeline import make_multipartite_pipeline
 
-from .model_forests.bipartite_model_trees import BipartiteModelForestRegressor
-from .model_forests.dwnn import KroneckerWeightedNeighbors
+from .bipartite_model_trees import BipartiteModelForestRegressor
+from .dwnn import KroneckerWeightedNeighbors
 
 
 def max_similarity(X):

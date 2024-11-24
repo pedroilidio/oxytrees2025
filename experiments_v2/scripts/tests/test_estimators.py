@@ -96,6 +96,14 @@ def check_estimators(estimators_path: Path, code_paths: list[Path]):
 )
 def main(estimator_definitions, code_path):
     """Check the estimators defined in the given YAML file."""
+    for var in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "BLIS_NUM_THREADS",
+    ):
+        os.environ[var] = "1"
+
     check_estimators(estimator_definitions, list(code_path))
 
 

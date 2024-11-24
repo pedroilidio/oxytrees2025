@@ -27,7 +27,7 @@ from bipartite_learn.model_selection import (
 
 from .kron_rls import KronRLSRegressor
 
-RSTATE = np.random.RandomState(0)
+RSTATE = 0
 N_JOBS = 1
 
 # Controls the balance between the similarity kernel and network-based kernel.
@@ -41,18 +41,17 @@ ALPHA_OPTIONS = [
     1.0,
 ]
 
-kfold_5_shuffle_diag = make_multipartite_kfold(
+kfold = make_multipartite_kfold(
     n_parts=2,  # Bipartite
-    cv=5,
+    cv=2,
     shuffle=True,
-    diagonal=True,
-    random_state=0,
+    diagonal=False,
+    random_state=RSTATE,
 )
 
 
 blmnii_rls = MultipartiteGridSearchCV(
     make_multipartite_pipeline(
-        SymmetryEnforcer(),
         TargetKernelLinearCombiner(),
         LocalMultiOutputWrapper(
             primary_rows_estimator=WeightedNeighborsRegressor(
@@ -71,7 +70,7 @@ blmnii_rls = MultipartiteGridSearchCV(
     param_grid={
         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
     },
-    cv=kfold_5_shuffle_diag,
+    cv=kfold,
     n_jobs=N_JOBS,
     scoring="average_precision",
     pairwise=True,
@@ -79,7 +78,6 @@ blmnii_rls = MultipartiteGridSearchCV(
 
 blmnii_svm = MultipartiteGridSearchCV(
     make_multipartite_pipeline(
-        SymmetryEnforcer(),
         TargetKernelLinearCombiner(),
         LocalMultiOutputWrapper(
             primary_rows_estimator=WeightedNeighborsRegressor(
@@ -98,14 +96,13 @@ blmnii_svm = MultipartiteGridSearchCV(
     param_grid={
         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
     },
-    cv=kfold_5_shuffle_diag,
+    cv=kfold,
     n_jobs=N_JOBS,
     scoring="average_precision",
     pairwise=True,
 )
 
 dthybrid_regressor = make_multipartite_pipeline(
-    SymmetryEnforcer(),
     DTHybridSampler(),
     LocalMultiOutputWrapper(
         primary_rows_estimator=WeightedNeighborsRegressor(
@@ -143,7 +140,7 @@ lmo_rls = MultipartiteGridSearchCV(
     param_grid={
         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
     },
-    cv=kfold_5_shuffle_diag,
+    cv=kfold,
     n_jobs=N_JOBS,
     scoring="average_precision",
     pairwise=True,
@@ -157,7 +154,7 @@ kron_rls = MultipartiteGridSearchCV(
     param_grid={
         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
     },
-    cv=kfold_5_shuffle_diag,
+    cv=kfold,
     n_jobs=N_JOBS,
     scoring="average_precision",
     pairwise=True,
@@ -176,7 +173,7 @@ mlp = MultipartiteGridSearchCV(
             (1024, 512, 256, 128, 64, 32),
         ],
     },
-    cv=kfold_5_shuffle_diag,
+    cv=kfold,
     n_jobs=N_JOBS,
     scoring="average_precision",
     pairwise=True,
