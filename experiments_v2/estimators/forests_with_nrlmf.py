@@ -10,8 +10,9 @@ from .bipartite_forests import bxt_bgso, bxt_gmo
 from .literature_models.nrlmf import nrlmf_sampler
 from .model_forests.estimators import dwnn_similarities_bxt_bgso
 
-CACHE_DIR = Path(__file__).parent / "cache"
-memory = joblib.Memory(location=CACHE_DIR, verbose=0)
+CACHE_DIR = Path(__file__).parent.resolve() / "cache"
+# memory = joblib.Memory(location=CACHE_DIR, verbose=0)
+memory = str(CACHE_DIR)
 
 nrlmf__bxt_bgso = make_multipartite_pipeline(nrlmf_sampler, bxt_bgso)
 nrlmf__bxt_gmo = make_multipartite_pipeline(nrlmf_sampler, bxt_gmo)

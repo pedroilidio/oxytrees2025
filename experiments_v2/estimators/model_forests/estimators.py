@@ -22,7 +22,7 @@ def conditional_uniform(X):
 uniform_bxt_bgso = BipartiteExtraTreesRegressor(
     bipartite_adapter="gmosa",
     criterion="squared_error_gso",
-    n_estimators=1000,
+    n_estimators=200,
     min_rows_leaf=5,
     min_cols_leaf=5,
     max_samples=None,

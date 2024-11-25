@@ -11,13 +11,14 @@ from ..model_forests.bipartite_model_trees import BipartiteModelForestRegressor
 from ..model_forests.dwnn import KroneckerWeightedNeighbors
 from .estimators import ss_bxt_gso__md_size
 
-CACHE_DIR = Path(__file__).parent / "cache"
-memory = joblib.Memory(location=CACHE_DIR, verbose=0)
+CACHE_DIR = Path(__file__).parent.resolve() / "cache"
+# memory = joblib.Memory(location=CACHE_DIR, verbose=0)
+memory = str(CACHE_DIR)
 
 COMMON_PARAMS = dict(
     bipartite_adapter="gmosa",
     criterion="squared_error_gso",
-    n_estimators=1000,
+    n_estimators=200,
     random_state=0,
     verbose=10,
 )

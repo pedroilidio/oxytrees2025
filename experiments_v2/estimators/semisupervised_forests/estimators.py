@@ -5,7 +5,8 @@ from sklearn.utils import check_random_state
 COMMON_PARAMS = dict(
     bipartite_adapter='gmosa',
     criterion='squared_error_gso',
-    n_estimators=1000,
+    # n_estimators=1000,
+    n_estimators=200,
     random_state=0,
     verbose=10,
 )

@@ -3,7 +3,7 @@ from bipartite_learn.ensemble import BipartiteExtraTreesRegressor
 RANDOM_STATE = 0
 COMMON_PARAMS = dict(
     bipartite_adapter="gmosa",
-    n_estimators=1000,
+    n_estimators=200,
     max_samples=None,
     bootstrap=False,
     random_state=RANDOM_STATE,
