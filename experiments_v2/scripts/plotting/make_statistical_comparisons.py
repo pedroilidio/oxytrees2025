@@ -2,6 +2,7 @@ import sys
 import argparse
 import warnings
 from pathlib import Path
+from itertools import product
 
 import yaml
 import numpy as np
@@ -21,6 +22,7 @@ from critical_difference_diagrams import (
     plot_critical_difference_diagram,
     _find_maximal_cliques,
 )
+BASEDIR = Path(__file__).resolve().parents[2]
 
 
 METRIC_FORMATTING = {
@@ -31,6 +33,26 @@ METRIC_FORMATTING = {
     "test_neg_label_ranking_loss": "Ranking Error",
     "test_neg_hamming_loss_micro": "Micro Hamming Loss",
 }
+
+
+def combine_LT_TL(original_data):
+    data = original_data.copy()
+    data = data.set_index(["dataset", "fold", "estimator", "hue"])
+    data.columns = data.columns.str.split("__", expand=True)
+
+    if not {"LT", "TL"} < set(data.columns.get_level_values(0)):
+        warnings.warn(
+            "LT and TL metrics are not present in the data. Skipping LT+TL combination."
+        )
+        return original_data
+
+    # Add LT+TL as new level
+    lttl = pd.concat({"LT+TL": (data["LT"] + data["TL"]) / 2}, axis=1)
+
+    data = pd.concat([data, lttl], axis=1)
+    data.columns = ("__".join(c) for c in data.columns)
+
+    return data.reset_index()
 
 
 def set_axes_size(w, h, ax=None):
@@ -582,18 +604,6 @@ def make_statistical_comparisons(
             + "\n  - ".join(metric_subset or [])
         )
 
-    # # Determine estimator hue_col
-    # if hue_col is not None:
-    #     data[hue_col] = df.loc[data.index, hue_col]
-    #     data[hue_col] = data[hue_col].fillna("none")
-    #     new_estimator_names = data["estimator"] + sep + data[hue_col].astype(str)
-    #     if transpose_hue:
-    #         data[hue_col] = data["estimator"]
-    #     data["estimator"] = new_estimator_names
-    # else:  # hue_col is None
-    #     data["hue_col"] = "no_hue"  # HACK
-    #     hue_col = "hue_col"
-
     # Drop duplicated runs (should be ordered by start time)
     dup = data.duplicated(["dataset", "fold", "estimator"], keep="last")
     if dup.any():
@@ -603,45 +613,21 @@ def make_statistical_comparisons(
         )
         data = data[~dup]
 
-    max_estimators_per_dataset = data.groupby("dataset").estimator.nunique().max()
+    allsets_data = data.pivot(index=["estimator", "hue"], columns=["dataset", "fold"])
+    missing_mask = allsets_data.isna().any(axis="index")
 
-    allsets_data = (
-        data
-        # Consider only datasets with all the estimators
-        .groupby("dataset").filter(
-            lambda x: x.estimator.nunique() == max_estimators_per_dataset
-        )
-    )
-    discarded_datasets = set(data.dataset) - set(allsets_data.dataset)
-    if discarded_datasets:
-        print(
-            # raise RuntimeError(
-            "The following datasets were not present for all estimators and"
-            " will not be considered for rankings across all datasets:"
-            f" {discarded_datasets}"
-        )
-
-    max_folds_per_estimator = (
-        data.groupby(["dataset", "estimator"]).fold.nunique().max()
-    )
-
-    allsets_data = (
-        allsets_data
-        # Consider only estimators with all the CV folds
-        .groupby(["dataset", "estimator"]).filter(
-            lambda x: x.fold.nunique() == max_folds_per_estimator
-        )
-    )
-
-    discarded_runs = set(data[["dataset", "estimator"]].itertuples(index=False)) - set(
-        allsets_data[["dataset", "estimator"]].itertuples(index=False)
-    )
-    if discarded_runs:
+    if missing_mask.any():
         print(
             "The following runs were not present for all CV folds and"
             " will not be considered for rankings across all datasets:"
-            f" {discarded_runs}"
+            f"\n\n{allsets_data.loc[:, missing_mask]}"
         )
+
+    allsets_data = (
+        allsets_data.loc[:, ~missing_mask]
+        .stack(["dataset", "fold"], future_stack=True)
+        .reset_index()
+    )
 
     allsets_data = (
         allsets_data.set_index(["dataset", "fold", "estimator", "hue"])  # Keep columns
@@ -655,6 +641,13 @@ def make_statistical_comparisons(
     )
 
     data = pd.concat([allsets_data, data], ignore_index=True, sort=False)
+
+    # Average LT and TL metrics
+    data = combine_LT_TL(data)
+
+    if data.isna().any().any():
+        warnings.warn("NaNs found in the data. Skipping.")
+        data = data.dropna()
 
     # Calculate omnibus Friedman statistics per dataset
     friedman_statistics = data.groupby("dataset").apply(
@@ -672,8 +665,6 @@ def make_statistical_comparisons(
     main_outdir.mkdir(exist_ok=True, parents=True)
     friedman_statistics.to_csv(main_outdir / "test_statistics.tsv", sep="\t")
 
-    data = data.dropna(axis=1, how="all")  # FIXME: something is bringing nans back
-
     table_lines = []
     grouped = data.groupby("dataset", sort=False)
 
@@ -685,7 +676,7 @@ def make_statistical_comparisons(
 
         for metric, pvalue_crosstable, mean_ranks in iter_posthoc_comparisons(
             dataset_group,
-            y_cols=metric_names,
+            y_cols=dataset_group.columns[dataset_group.dtypes == float],
             estimator_col="estimator",
             fold_col="fold",  # different from the above will all sets
             # p_adjust="holm",
@@ -741,6 +732,17 @@ def make_statistical_comparisons(
     )
 
 
+def plot_crosstab(data, out):
+    print("Plotting crosstab...")
+    crosstab = pd.crosstab(data.dataset, data.estimator).T
+    plt.figure()
+    sns.heatmap(crosstab, annot=True, cbar_kws=dict(label="Number of runs"))
+    set_axes_size(0.3 * crosstab.shape[1], 0.3 * crosstab.shape[0])
+    out.parent.mkdir(exist_ok=True, parents=True)
+    plt.savefig(out, bbox_inches="tight", dpi=300)
+    print(f"Saved crosstab to {out}")
+
+
 @click.command()
 @click.option(
     "--config",
@@ -748,42 +750,40 @@ def make_statistical_comparisons(
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     help="Path to the configuration file.",
 )
-def main(config):
+@click.option(
+    "--results-table",
+    "-r",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Path to the results table.",
+    multiple=True,
+)
+@click.option(
+    "--out-crosstab",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Path to save a table counting runs per dataset and estimator.",
+    default=BASEDIR / "results/run_counts.png",
+)
+def main(config, results_table, out_crosstab):
     """Generate statistical comparisons between run results."""
 
+    data = pd.concat(map(pd.read_csv, results_table))
+    out_crosstab = out_crosstab.with_suffix(".png")  # Add suffix if not present
+    plot_crosstab(data, out_crosstab)
     config = yaml.safe_load(config.read_text())
 
-    mlflow.set_tracking_uri("mlruns")
-    data = mlflow.search_runs(
-        filter_string="status = 'FINISHED'",
-        order_by=["start_time"],
-        search_all_experiments=True,
-    )
-    breakpoint()
-    data = (
-        data.dropna(subset=["tags.estimator", "tags.dataset"])
-        .drop_duplicates("tags.mlflow.runName", keep="last")
-        .set_index(["tags.estimator", "tags.dataset", "tags.validation_setting"])
-        .filter(like="metrics.", axis="columns")
-    )
-    breakpoint()
-    data.columns = pd.MultiIndex.from_frame(
-        data.columns.str.extract(r"metrics\.(\w+)\.(\d+)")
-    )
-    data = (
-        data.stack(future_stack=True)
-        .rename_axis(["estimator", "dataset", "fold"])
-        .reset_index()
-    )
-    data["fold"] = data["fold"].astype(int)
-
-    make_statistical_comparisons(
-        data=data,
-        estimator_subset=args.estimators,
-        dataset_subset=args.datasets,
-        metric_subset=args.metrics,
-        main_outdir=args.outdir,
-    )
+    for config_object in config:
+        for validation_setting in config_object["validation_setting"]:
+            outdir = Path(config_object["out"]) / validation_setting
+            make_statistical_comparisons(
+                data=data,
+                estimator_subset=config_object["estimator"],
+                dataset_subset=[  # HACK
+                    d + "__" + validation_setting for d in config_object["dataset"]
+                ],
+                metric_subset=config_object["scoring"],
+                main_outdir=outdir,
+            )
 
 
 if __name__ == "__main__":
