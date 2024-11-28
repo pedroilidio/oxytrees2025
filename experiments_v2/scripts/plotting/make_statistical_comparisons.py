@@ -22,6 +22,7 @@ from critical_difference_diagrams import (
     plot_critical_difference_diagram,
     _find_maximal_cliques,
 )
+
 BASEDIR = Path(__file__).resolve().parents[2]
 
 
@@ -736,7 +737,13 @@ def plot_crosstab(data, out):
     print("Plotting crosstab...")
     crosstab = pd.crosstab(data.dataset, data.estimator).T
     plt.figure()
-    sns.heatmap(crosstab, annot=True, cbar_kws=dict(label="Number of runs"))
+    sns.heatmap(
+        crosstab,
+        annot=True,
+        cbar_kws=dict(label="Number of runs"),
+        xticklabels=True,
+        yticklabels=True,
+    )
     set_axes_size(0.3 * crosstab.shape[1], 0.3 * crosstab.shape[0])
     out.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(out, bbox_inches="tight", dpi=300)
@@ -773,6 +780,8 @@ def main(config, results_table, out_crosstab):
     config = yaml.safe_load(config.read_text())
 
     for config_object in config:
+        if not config_object.get("active", True):
+            continue
         for validation_setting in config_object["validation_setting"]:
             outdir = Path(config_object["out"]) / validation_setting
             make_statistical_comparisons(
