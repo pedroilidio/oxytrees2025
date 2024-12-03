@@ -2,6 +2,8 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{caption}
 
 
 \graphicspath{{figures}}
@@ -94,7 +96,7 @@ In matrix notation, the predictions $\tilde Y$ can be written as
 
 
 \section{Motivation}
-\subsection{Paulownias are a generalization of PBCT's inference procedure}
+\subsection{Paulownias inference is a generalization of the inference procedure of PBCTs}
 
 % todo: performance improves
 In the original description of PBCTs, \cite{pliakos2018} proposed a variant of the inference procedure for the cases in which one of the instances of the dyad is present in the training set. Remember that each leaf of a PBCT will correspond to a 2D partition $Y_\text{leaf}$ of the training interaction matrix. In the variant proposed by \cite{pliakos2018}, if the test row instance is known, the output will be the average of only the row corresponding to that instance, and not over the entire $Y_\text{leaf}$ as usual. This is done analogously for a known column instance as well. In precise terms, the predicted probability $\tilde y$ for a test instance $(x_\text{1, test}, x_\text{2, test})$ is given by \autoref{eq:pbct}, in which $\mathcal{I}_\text{leaf}$ and $\mathcal{J}_\text{leaf}$ are the sets of row and column indices in the leaf, respectively.
@@ -150,10 +152,10 @@ This inference procedure is attributed as default to the Global Multi-Output tre
     \label{fig:procedure}
 \end{figure}
 
-
-The choice between always averaging $Y_\text{leaf}$ or only the row/column corresponding to the known test instance is one more materialization of the trade-off between bias and variance. When averaging the whole matrix, one uses more annotations to make the prediction, which in principle renders the model more robust to data uncertainty (bias over variance). On the other hand, using only the known row/column improves the model ability to conform to the specificities of the test instance, which is also a desirable property (variance over bias).
-
 The proposed approach (\autoref{sec:bipartite-model-trees}) places itself as a middle ground between the two extremes. We still utilize all the annotations in the leaf, while also still prioritizing similar instances when generating the final prediction. Therefore, we offer a more flexible framework to fine-tune biclustering decision trees along the bias-variance spectrum.
+
+[ours work for DWNN]
+[add a more tangible example in which the original PBCT inference would not be ideal]
 
 \section{Experimental setup}
 [less finished ideas]
@@ -162,15 +164,214 @@ In fact, a main rationale behind model trees is to combine a simple high-bias mo
 
 % TODO: Another benefit would be in terms of computational complexity...
 
-However, three trivial explanations must be ruled out for the hypothesized benefits to hold and for the proposed approach to be justifiable:
+However, two trivial explanations must be ruled out for the hypothesized benefits to hold and for the proposed approach to be justifiable:
 %
 \begin{enumerate}
     \item \textbf{The leaf model is doing all the work:} the simple model is already able to capture the underlying patterns in the data, and the tree partitioning is not adding any value to the model.
     \item \textbf{Large leaves are enough:} setting the leaf size to be large enough would already provide the same benefits as the proposed approach. This corresponds to setting the leaf model to the simplest possible estimator: the label average.
-    \item \textbf{The specific weights are irrelevant:} the distance-based weighting procedure is not adding any value to the model, and the same results could be achieved by using random weights in the leaves. [this is hard to explain, I think it has some reason but I still have to think it through]
+    % \item \textbf{The specific weights are irrelevant:} the distance-based weighting procedure is not adding any value to the model, and the same results could be achieved by using random weights in the leaves. [this is hard to explain, I think it has some reason but I still have to think it through]
 \end{enumerate}
 
 [the experiments will be designed in the direction of ruling out these explanations]
+
+\section{Results and discussion}
+
+\subsection{Paulownias outperform previous methods for inductive interaction prediction}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_25/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_50/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_75/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+
+     \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_25/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_50/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_75/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}   
+    \caption{Performance comparison of the proposed Paulownias with the previous methods for inductive interaction prediction.}
+    \label{fig:literature_TT}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_25/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_50/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_75/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+
+     \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_25/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_50/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/literature_methods/TT_75/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}   
+    \caption{Performance comparison of the proposed Paulownias with the previous methods for inductive interaction prediction.}
+    \label{fig:literature_LTTL}
+\end{figure}
+
+
+\subsection{Using similarities with neighbors is the best way of generating outputs}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_25/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_50/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_75/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+
+     \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_25/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_50/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_75/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}   
+    \caption{Performance comparison of the proposed Paulownias with the previous methods for inductive interaction prediction.}
+    \label{fig:weights_TT}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_25/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_50/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_75/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+
+     \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_25/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_50/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/dwnn_weights/TT_75/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}   
+    \caption{Performance comparison of the proposed Paulownias with the previous methods for inductive interaction prediction.}
+    \label{fig:weights_LTTL}
+\end{figure}
+
+\subsection{Larger leaves are not enough to explain the performance improvement}
+
+\subsection{Semi-supervised impurities do not offer significant advantage to Paulownias}
+
+\subsection{Matrix completion slightly improves predictive performance}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_25/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_50/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_75/all_datasets/boxplots/TT__auroc.pdf}
+    \end{subfigure}
+
+     \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_25/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_50/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_75/all_datasets/boxplots/TT__auprc.pdf}
+    \end{subfigure}   
+    \caption{Performance comparison of the proposed Paulownias with the previous methods for inductive interaction prediction.}
+    \label{fig:ss_TT}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_25/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_50/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_75/all_datasets/boxplots/LT+TL__auroc.pdf}
+    \end{subfigure}
+
+     \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_25/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_50/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}
+    \begin{subfigure}{.24\textwidth}
+        \includegraphics[width=\textwidth]{results/y_reconstruction/TT_75/all_datasets/boxplots/LT+TL__auprc.pdf}
+    \end{subfigure}   
+    \caption{Performance comparison of the proposed Paulownias with the previous methods for inductive interaction prediction.}
+    \label{fig:ss_LTTL}
+\end{figure}
 
 % Another possible explanation for the superiority of the proposed approach is that the weighting procedure captures the underlying missingness mechanism.
 % In other words, the weighting corresponds to more distant features tend increases diversity between trees in an ensemble.

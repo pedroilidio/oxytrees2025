@@ -615,6 +615,18 @@ def make_statistical_comparisons(
         data = data[~dup]
 
     allsets_data = data.pivot(index=["estimator", "hue"], columns=["dataset", "fold"])
+    
+    # FIXME
+    # missing_metrics = allsets_data.isna().all(axis="columns")
+
+    # if missing_metrics.any():
+    #     print(
+    #         "The following metrics were missing for all CV folds and"
+    #         " will not be considered for rankings across all datasets:"
+    #         f"\n\n{allsets_data.loc[:, missing_metrics]}"
+    #     )
+    #     allsets_data = allsets_data.loc[:, ~missing_metrics]
+
     missing_mask = allsets_data.isna().any(axis="index")
 
     if missing_mask.any():
@@ -623,9 +635,10 @@ def make_statistical_comparisons(
             " will not be considered for rankings across all datasets:"
             f"\n\n{allsets_data.loc[:, missing_mask]}"
         )
+        allsets_data = allsets_data.loc[:, ~missing_mask]
 
     allsets_data = (
-        allsets_data.loc[:, ~missing_mask]
+        allsets_data
         .stack(["dataset", "fold"], future_stack=True)
         .reset_index()
     )
