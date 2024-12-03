@@ -50,57 +50,83 @@ kfold = make_multipartite_kfold(
 )
 
 
-blmnii_rls = MultipartiteGridSearchCV(
-    make_multipartite_pipeline(
-        TargetKernelLinearCombiner(),
-        LocalMultiOutputWrapper(
-            primary_rows_estimator=WeightedNeighborsRegressor(
-                metric="precomputed",
-                weights="similarity",
-            ),
-            primary_cols_estimator=WeightedNeighborsRegressor(
-                metric="precomputed",
-                weights="similarity",
-            ),
-            secondary_rows_estimator=KernelRidge(kernel="precomputed"),
-            secondary_cols_estimator=KernelRidge(kernel="precomputed"),
-            independent_labels=False,
-        ),
+blmnii_rls = LocalMultiOutputWrapper(
+    primary_rows_estimator=WeightedNeighborsRegressor(
+        metric="precomputed",
+        weights="similarity",
     ),
-    param_grid={
-        "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
-    },
-    cv=kfold,
-    n_jobs=N_JOBS,
-    scoring="average_precision",
-    pairwise=True,
+    primary_cols_estimator=WeightedNeighborsRegressor(
+        metric="precomputed",
+        weights="similarity",
+    ),
+    secondary_rows_estimator=KernelRidge(kernel="precomputed"),
+    secondary_cols_estimator=KernelRidge(kernel="precomputed"),
+    independent_labels=False,
 )
+# blmnii_rls = MultipartiteGridSearchCV(
+#     make_multipartite_pipeline(
+#         TargetKernelLinearCombiner(),
+#         LocalMultiOutputWrapper(
+#             primary_rows_estimator=WeightedNeighborsRegressor(
+#                 metric="precomputed",
+#                 weights="similarity",
+#             ),
+#             primary_cols_estimator=WeightedNeighborsRegressor(
+#                 metric="precomputed",
+#                 weights="similarity",
+#             ),
+#             secondary_rows_estimator=KernelRidge(kernel="precomputed"),
+#             secondary_cols_estimator=KernelRidge(kernel="precomputed"),
+#             independent_labels=False,
+#         ),
+#     ),
+#     param_grid={
+#         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
+#     },
+#     cv=kfold,
+#     n_jobs=N_JOBS,
+#     scoring="average_precision",
+#     pairwise=True,
+# )
 
-blmnii_svm = MultipartiteGridSearchCV(
-    make_multipartite_pipeline(
-        TargetKernelLinearCombiner(),
-        LocalMultiOutputWrapper(
-            primary_rows_estimator=WeightedNeighborsRegressor(
-                metric="precomputed",
-                weights="similarity",
-            ),
-            primary_cols_estimator=WeightedNeighborsRegressor(
-                metric="precomputed",
-                weights="similarity",
-            ),
-            secondary_rows_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
-            secondary_cols_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
-            independent_labels=True,
-        ),
+blmnii_svm = LocalMultiOutputWrapper(
+    primary_rows_estimator=WeightedNeighborsRegressor(
+        metric="precomputed",
+        weights="similarity",
     ),
-    param_grid={
-        "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
-    },
-    cv=kfold,
-    n_jobs=N_JOBS,
-    scoring="average_precision",
-    pairwise=True,
+    primary_cols_estimator=WeightedNeighborsRegressor(
+        metric="precomputed",
+        weights="similarity",
+    ),
+    secondary_rows_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
+    secondary_cols_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
+    independent_labels=True,
 )
+# blmnii_svm = MultipartiteGridSearchCV(
+#     make_multipartite_pipeline(
+#         TargetKernelLinearCombiner(),
+#         LocalMultiOutputWrapper(
+#             primary_rows_estimator=WeightedNeighborsRegressor(
+#                 metric="precomputed",
+#                 weights="similarity",
+#             ),
+#             primary_cols_estimator=WeightedNeighborsRegressor(
+#                 metric="precomputed",
+#                 weights="similarity",
+#             ),
+#             secondary_rows_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
+#             secondary_cols_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
+#             independent_labels=True,
+#         ),
+#     ),
+#     param_grid={
+#         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
+#     },
+#     cv=kfold,
+#     n_jobs=N_JOBS,
+#     scoring="average_precision",
+#     pairwise=True,
+# )
 
 dthybrid_regressor = make_multipartite_pipeline(
     DTHybridSampler(),
@@ -126,39 +152,47 @@ dthybrid_regressor = make_multipartite_pipeline(
 )
 
 # van Laarhoven
-lmo_rls = MultipartiteGridSearchCV(
-    make_multipartite_pipeline(
-        TargetKernelLinearCombiner(),
-        LocalMultiOutputWrapper(
-            primary_rows_estimator=KernelRidge(kernel="precomputed"),
-            primary_cols_estimator=KernelRidge(kernel="precomputed"),
-            secondary_rows_estimator=KernelRidge(kernel="precomputed"),
-            secondary_cols_estimator=KernelRidge(kernel="precomputed"),
-            independent_labels=False,
-        ),
-    ),
-    param_grid={
-        "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
-    },
-    cv=kfold,
-    n_jobs=N_JOBS,
-    scoring="average_precision",
-    pairwise=True,
+lmo_rls = LocalMultiOutputWrapper(
+    primary_rows_estimator=KernelRidge(kernel="precomputed"),
+    primary_cols_estimator=KernelRidge(kernel="precomputed"),
+    secondary_rows_estimator=KernelRidge(kernel="precomputed"),
+    secondary_cols_estimator=KernelRidge(kernel="precomputed"),
+    independent_labels=False,
 )
+# lmo_rls = MultipartiteGridSearchCV(
+#     make_multipartite_pipeline(
+#         TargetKernelLinearCombiner(),
+#         LocalMultiOutputWrapper(
+#             primary_rows_estimator=KernelRidge(kernel="precomputed"),
+#             primary_cols_estimator=KernelRidge(kernel="precomputed"),
+#             secondary_rows_estimator=KernelRidge(kernel="precomputed"),
+#             secondary_cols_estimator=KernelRidge(kernel="precomputed"),
+#             independent_labels=False,
+#         ),
+#     ),
+#     param_grid={
+#         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
+#     },
+#     cv=kfold,
+#     n_jobs=N_JOBS,
+#     scoring="average_precision",
+#     pairwise=True,
+# )
 
-kron_rls = MultipartiteGridSearchCV(
-    make_multipartite_pipeline(
-        TargetKernelLinearCombiner(),
-        KronRLSRegressor(),
-    ),
-    param_grid={
-        "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
-    },
-    cv=kfold,
-    n_jobs=N_JOBS,
-    scoring="average_precision",
-    pairwise=True,
-)
+kron_rls = KronRLSRegressor()
+# kron_rls = MultipartiteGridSearchCV(
+#     make_multipartite_pipeline(
+#         TargetKernelLinearCombiner(),
+#         KronRLSRegressor(),
+#     ),
+#     param_grid={
+#         "targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS,
+#     },
+#     cv=kfold,
+#     n_jobs=N_JOBS,
+#     scoring="average_precision",
+#     pairwise=True,
+# )
 
 mlp = MultipartiteGridSearchCV(
     GlobalSingleOutputWrapper(
