@@ -31,7 +31,7 @@ class ProbaRegressor(BaseEstimator, RegressorMixin, MetaEstimatorMixin):
         return self
     
     def predict(self, X):
-        return self.estimator_.predict_proba(X)[:, 1]
+        return self.estimator_.predict_proba(X)[:, 1].reshape(-1)
 
 
 dwnn = KroneckerWeightedNeighbors(
