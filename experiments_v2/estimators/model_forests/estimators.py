@@ -1,12 +1,14 @@
 import numpy as np
-from sklearn.base import clone
+from sklearn.base import clone, RegressorMixin, BaseEstimator, MetaEstimatorMixin
 from sklearn.preprocessing import FunctionTransformer
+from sklearn.linear_model import LogisticRegression
 from bipartite_learn.ensemble import BipartiteExtraTreesRegressor
 from bipartite_learn.pipeline import make_multipartite_pipeline
+from bipartite_learn.wrappers import GlobalSingleOutputWrapper
 
 from .bipartite_model_trees import BipartiteModelForestRegressor
 from .dwnn import KroneckerWeightedNeighbors
-
+from ..literature_models.kron_rls import KronRLSRegressor
 
 def max_similarity(X):
     max_indices = np.argmax(X, axis=1)
@@ -17,6 +19,19 @@ def max_similarity(X):
 
 def conditional_uniform(X):
     return (X == 1).astype(X.dtype)
+
+
+class ProbaRegressor(BaseEstimator, RegressorMixin, MetaEstimatorMixin):
+    def __init__(self, estimator):
+        self.estimator = estimator
+    
+    def fit(self, X, y):
+        self.estimator_ = clone(self.estimator)
+        self.estimator_.fit(X, y)
+        return self
+    
+    def predict(self, X):
+        return self.estimator_.predict_proba(X)[:, 1]
 
 
 dwnn = KroneckerWeightedNeighbors(
@@ -78,4 +93,16 @@ dwnn_softmax_bxt_bgso = make_multipartite_pipeline(
     # NOTE: See previous note.
     FunctionTransformer(np.exp),
     clone(dwnn_similarities_bxt_bgso),
+)
+
+bxt_bgso_kronrls = BipartiteModelForestRegressor(
+    estimator=clone(uniform_bxt_bgso),
+    leaf_estimator=KronRLSRegressor(),
+    pairwise=True,
+)
+
+bxt_bgso_logistic = BipartiteModelForestRegressor(
+    estimator=clone(uniform_bxt_bgso),
+    leaf_estimator=GlobalSingleOutputWrapper(ProbaRegressor(LogisticRegression())),
+    pairwise=True,
 )

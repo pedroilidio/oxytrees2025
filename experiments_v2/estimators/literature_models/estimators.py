@@ -1,5 +1,6 @@
 import numpy as np
 
+from sklearn.linear_model import LogisticRegression
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.svm import SVR, SVC
@@ -26,6 +27,7 @@ from bipartite_learn.model_selection import (
 )
 
 from .kron_rls import KronRLSRegressor
+from ..model_forests.estimators import ProbaRegressor
 
 RSTATE = 0
 N_JOBS = 1
@@ -212,3 +214,5 @@ mlp = MultipartiteGridSearchCV(
     scoring="average_precision",
     pairwise=True,
 )
+
+logistic = GlobalSingleOutputWrapper(LogisticRegression())
