@@ -19,6 +19,16 @@ def conditional_uniform(X):
     return (X == 1).astype(X.dtype)
 
 
+dwnn = KroneckerWeightedNeighbors(
+    metric="precomputed",
+    weights=max_similarity,
+)
+
+dwnn_square = make_multipartite_pipeline(
+    FunctionTransformer(np.square),  
+    clone(dwnn),
+)
+
 uniform_bxt_bgso = BipartiteExtraTreesRegressor(
     bipartite_adapter="gmosa",
     criterion="squared_error_gso",
@@ -30,6 +40,7 @@ uniform_bxt_bgso = BipartiteExtraTreesRegressor(
     random_state=0,
     verbose=10,
 )
+
 
 dwnn_max_bxt_bgso = BipartiteModelForestRegressor(
     estimator=clone(uniform_bxt_bgso),
