@@ -1,5 +1,4 @@
 import traceback
-import logging
 from typing import Any
 import os
 import sys
@@ -27,15 +26,13 @@ BIPARTITE_SIGNATURE = ModelSignature(
 )
 
 
-def get_experiment_id_from_name(
-    *, client, experiment_name, artifact_location, description
-):
+def get_experiment_id_from_name(*, client, experiment_name, description):
     experiment = client.get_experiment_by_name(experiment_name)
 
     if experiment is None:
         return client.create_experiment(
             name=experiment_name,
-            artifact_location=artifact_location,
+            # artifact_location=artifact_location,
             tags={"mlflow.note.content": description},
         )
 
@@ -262,10 +259,9 @@ def execute_fold_run(
     help="YAML file with scoring definitions.",
 )
 @click.option(
-    "--output-directory",
-    type=click.Path(file_okay=False, path_type=Path),
-    required=True,
-    help="Output directory for storing results.",
+    "--tracking-uri",
+    default="sqlite:///mlruns.db",
+    help="MLflow tracking URI.",
 )
 @click.option(
     "--n-jobs",
@@ -296,7 +292,7 @@ def main(
     fold_definitions,
     experiment_definitions,
     scoring_definitions,
-    output_directory,
+    tracking_uri,
     n_jobs,
     code_path,
     skip_finished=False,
@@ -313,15 +309,12 @@ def main(
     ):
         os.environ[var] = "1"
 
+    os.environ["MLFLOW_TRACKING_URI"] = tracking_uri
+
     sys.path.extend(map(str, code_path))  # HACK
 
-    artifact_location = output_directory.resolve().as_uri()
-    client = MlflowClient(tracking_uri=artifact_location)
+    client = MlflowClient(tracking_uri=tracking_uri)
     pool = mp.Pool(n_jobs)
-
-    # XXX
-    logger = logging.getLogger("mlflow")
-    logger.setLevel(logging.DEBUG)
 
     estimators = yaml.safe_load(estimator_definitions)
     datasets = yaml.safe_load(dataset_definitions)
@@ -339,19 +332,19 @@ def main(
         experiment_id = get_experiment_id_from_name(
             client=client,
             experiment_name=experiment_name,
-            artifact_location=artifact_location,
+            # artifact_location=artifact_location,  # TODO
             description=experiment_data["description"],
         )
         if skip_finished:
+            print("Collecting finished runs...")
             finished_runs = client.search_runs(
                 filter_string="status = 'FINISHED'",
-                experiment_ids=experiment_id,
+                experiment_ids=[e.experiment_id for e in client.search_experiments()],
+                max_results=50_000,  # Maximum allowed by MLflow
             )
-            
-            print("Collecting finished runs...")
             finished_runs = {
                 tuple(map(run.data.tags.get, order + ("fold_index",)))
-                for run in tqdm(finished_runs, desc="Loading finished runs")
+                for run in tqdm(finished_runs, desc="Processing finished runs")
             }
 
         scoring_functions = {
