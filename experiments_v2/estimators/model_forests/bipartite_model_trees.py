@@ -1,11 +1,10 @@
-import sys
-from pathlib import Path
+from numbers import Real
 
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, _fit_context, clone
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils._param_validation import HasMethods
+from sklearn.utils._param_validation import HasMethods, Interval
 from sklearn.exceptions import NotFittedError
 from bipartite_learn.ensemble._forest import BaseMultipartiteForest
 
@@ -23,12 +22,14 @@ class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
         "estimator": [HasMethods(["apply", "fit"])],
         "leaf_estimator": [HasMethods(["fit", "predict"])],
         "pairwise": ["boolean"],
+        "min_impurity": [Interval(Real, 0.0, None, closed="left")],
     }
 
-    def __init__(self, estimator, leaf_estimator, pairwise=False):
+    def __init__(self, estimator, leaf_estimator, pairwise=False, min_impurity=0.0):
         self.estimator = estimator
         self.leaf_estimator = leaf_estimator
         self.pairwise = pairwise
+        self.min_impurity = min_impurity
 
     def _iter_leaf_indices(self, X):
         check_is_fitted(self)
@@ -38,7 +39,7 @@ class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
         for leaf_id, leaf_group in df.groupby(df):
             leaf_group = leaf_group.unstack()
             yield leaf_id, leaf_group.index.values, leaf_group.columns.values
-
+    
     @_fit_context(prefer_skip_nested_validation=False)
     def fit(self, X, y, **fit_params):
         # Fit tree if not already fitted
@@ -51,24 +52,31 @@ class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
 
         if self.pairwise:
             self._leaf_training_indices = {}
-            self.leaf_estimators_ = {}
-            for leaf_id, leaf_rows, leaf_cols in self._iter_leaf_indices(X):
+
+        self.leaf_estimators_ = {}
+        for leaf_id, leaf_rows, leaf_cols in self._iter_leaf_indices(X):
+
+            # Fit leaf estimator only if leaf is not homogeneous
+            if self.tree_.impurity[leaf_id] <= self.min_impurity:
+                # FIXME: only works for regression
+                self.leaf_estimators_[leaf_id] = self.tree_.value[leaf_id][0]
+                continue
+
+            # Slice X matrix to only include rows and columns in leaf
+            if self.pairwise:
                 self._leaf_training_indices[leaf_id] = (leaf_rows, leaf_cols)
-                self.leaf_estimators_[leaf_id] = clone(self.leaf_estimator).fit(
-                    [
-                        X[0][leaf_rows, :][:, leaf_rows],
-                        X[1][leaf_cols, :][:, leaf_cols],
-                    ],
-                    y[leaf_rows, :][:, leaf_cols],
-                )
-        else:
-            self.leaf_estimators_ = {
-                leaf_id: clone(self.leaf_estimator).fit(
-                    [X[0][leaf_rows, :], X[1][leaf_cols, :]],
-                    y[leaf_rows, :][:, leaf_cols],
-                )
-                for leaf_id, leaf_rows, leaf_cols in self._iter_leaf_indices(X)
-            }
+                X_leaf = [
+                    X[0][leaf_rows, :][:, leaf_rows],
+                    X[1][leaf_cols, :][:, leaf_cols],
+                ]
+            else:
+                X_leaf = [X[0][leaf_rows, :], X[1][leaf_cols, :]]
+
+            # Fit leaf estimator
+            self.leaf_estimators_[leaf_id] = clone(self.leaf_estimator).fit(
+                X_leaf,
+                y[leaf_rows, :][:, leaf_cols],
+            )
 
         return self
 
@@ -84,6 +92,12 @@ class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
         y_hat = np.empty(out_shape, dtype=np.float64)
 
         for leaf_id, leaf_rows, leaf_cols in self._iter_leaf_indices(X):
+            leaf_estimator = self.leaf_estimators_[leaf_id]
+
+            if isinstance(leaf_estimator, np.ndarray):  # leaf is homogeneous
+                y_hat[np.ix_(leaf_rows, leaf_cols)] = leaf_estimator
+                continue
+
             if self.pairwise:
                 leaf_train_rows, leaf_train_cols = self._leaf_training_indices[leaf_id]
                 X_leaf = [
@@ -93,15 +107,17 @@ class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
             else:
                 X_leaf = [X[0][leaf_rows, :], X[1][leaf_cols, :]]
 
-            y_hat[np.ix_(leaf_rows, leaf_cols)] = (
+            leaf_y_hat = (
                 self.leaf_estimators_[leaf_id].predict(X_leaf)
             ).reshape(len(leaf_rows), len(leaf_cols))
+
+            y_hat[np.ix_(leaf_rows, leaf_cols)] = leaf_y_hat
 
         return y_hat.reshape(-1)
 
     def __sklearn_is_fitted__(self):
         return hasattr(self, "estimator_")
-    
+
     def __getattribute__(self, name):
         if name != "_estimator_params" and name in self._estimator_params:
             return getattr(self.estimator_, name)

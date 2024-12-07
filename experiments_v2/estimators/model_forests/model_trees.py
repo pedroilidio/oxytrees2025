@@ -1,9 +1,11 @@
+from numbers import Real
+
 import numpy as np
 import pandas as pd
 import joblib
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, _fit_context, clone
 from sklearn.utils.validation import check_is_fitted
-from sklearn.utils._param_validation import HasMethods
+from sklearn.utils._param_validation import HasMethods, Interval
 from sklearn.exceptions import NotFittedError
 from sklearn.ensemble._forest import ForestRegressor
 
@@ -19,12 +21,14 @@ class ModelTree(MetaEstimatorMixin, BaseEstimator):
         "estimator": [HasMethods(["apply", "fit"])],
         "leaf_estimator": [HasMethods(["fit", "predict"])],
         "pairwise": ["boolean"],
+        "min_impurity": [Interval(Real, 0.0, None, closed="left")],
     }
 
-    def __init__(self, estimator, leaf_estimator, pairwise=False):
+    def __init__(self, estimator, leaf_estimator, pairwise=False, min_impurity=0.0):
         self.estimator = estimator
         self.leaf_estimator = leaf_estimator
         self.pairwise = pairwise
+        self.min_impurity = min_impurity
 
     def _iter_leaf_indices(self, X):
         check_is_fitted(self, "estimator_")
@@ -46,19 +50,25 @@ class ModelTree(MetaEstimatorMixin, BaseEstimator):
 
         if self.pairwise:
             self._leaf_training_indices = {}
-            self.leaf_estimators_ = {}
-            for leaf_id, leaf_indices in self._iter_leaf_indices(X):
+
+        self.leaf_estimators_ = {}
+        for leaf_id, leaf_indices in self._iter_leaf_indices(X):
+
+            # Fit leaf estimator only if leaf is not homogeneous
+            if self.tree_.impurity[leaf_id] <= self.min_impurity:
+                # FIXME: only works for regression
+                self.leaf_estimators_[leaf_id] = self.tree_.value[leaf_id][0]
+                continue
+            if self.pairwise:
                 self._leaf_training_indices[leaf_id] = leaf_indices
-                self.leaf_estimators_[leaf_id] = clone(self.leaf_estimator).fit(
-                    X[leaf_indices, :][:, leaf_indices], y[leaf_indices]
-                )
-        else:
-            self.leaf_estimators_ = {
-                leaf_id: clone(self.leaf_estimator).fit(
-                    X[leaf_indices, :], y[leaf_indices]
-                )
-                for leaf_id, leaf_indices in self._iter_leaf_indices(X)
-            }
+                X_leaf = X[leaf_indices, :][:, leaf_indices]
+            else:
+                X_leaf = X[leaf_indices, :]
+
+            # Fit leaf estimator
+            self.leaf_estimators_[leaf_id] = clone(self.leaf_estimator).fit(
+                X_leaf, y[leaf_indices]
+            )
 
         return self
 
@@ -74,12 +84,18 @@ class ModelTree(MetaEstimatorMixin, BaseEstimator):
         y_hat = np.empty(out_shape, dtype=np.float64)
 
         for leaf_id, leaf_indices in self._iter_leaf_indices(X):
+            leaf_estimator = self.leaf_estimators_[leaf_id]
+
+            if isinstance(leaf_estimator, np.ndarray):  # leaf is homogeneous
+                y_hat[leaf_indices] = leaf_estimator
+                continue
+
             if self.pairwise:
                 X_leaf = X[leaf_indices, :][:, self._leaf_training_indices[leaf_id]]
             else:
                 X_leaf = X[leaf_indices, :]
 
-            y_hat[leaf_indices] = self.leaf_estimators_[leaf_id].predict(X_leaf)
+            y_hat[leaf_indices] = leaf_estimator.predict(X_leaf)
 
         return y_hat
 
@@ -104,10 +120,11 @@ class ModelForestRegressor(ForestRegressor, MetaEstimatorMixin):
     )
     _model_tree_class = ModelTree
 
-    def __init__(self, estimator, leaf_estimator, pairwise=False):
+    def __init__(self, estimator, leaf_estimator, pairwise=False, min_impurity=0.0):
         self.estimator = estimator
         self.leaf_estimator = leaf_estimator
         self.pairwise = pairwise
+        self.min_impurity = min_impurity
 
     @_fit_context(prefer_skip_nested_validation=False)
     def fit(self, X, y, **fit_params):
@@ -118,6 +135,7 @@ class ModelForestRegressor(ForestRegressor, MetaEstimatorMixin):
                 tree,
                 self.leaf_estimator,
                 self.pairwise,
+                self.min_impurity,
             )
             self.estimators_.append(model_tree.fit(X, y))
         return self

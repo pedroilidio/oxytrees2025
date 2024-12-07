@@ -12,8 +12,11 @@ from bipartite_learn.wrappers import GlobalSingleOutputWrapper
 from bipartite_learn.ensemble import BipartiteRandomForestRegressor
 from bipartite_learn.datasets import NuclearReceptorsLoader
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from bipartite_model_trees import BipartiteModelTree, BipartiteModelForestRegressor
+sys.path.insert(0, str(Path(__file__).parents[2]))
+from model_forests.bipartite_model_trees import (
+    BipartiteModelTree,
+    BipartiteModelForestRegressor,
+)
 
 
 @pytest.fixture(params=range(10))
