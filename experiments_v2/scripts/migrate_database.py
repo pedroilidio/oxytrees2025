@@ -65,9 +65,9 @@ def migrate_mlflow_backend(from_tracking_uri, to_tracking_uri, max_results=50_00
 
 
 @click.command()
-@click.option('--from_tracking_uri', help='Source tracking uri')
-@click.option('--to_tracking_uri', help='Destination tracking uri')
-@click.option('--max_results', default=50_000, help='Max results to migrate')
+@click.option('--from-tracking-uri', '--from', help='Source tracking uri')
+@click.option('--to-tracking-uri', '--to', help='Destination tracking uri')
+@click.option('--max-results', default=50_000, help='Max results to migrate')
 def main(from_tracking_uri, to_tracking_uri, max_results):
     migrate_mlflow_backend(from_tracking_uri, to_tracking_uri, max_results)
 
