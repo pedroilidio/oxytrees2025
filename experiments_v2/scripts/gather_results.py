@@ -36,6 +36,7 @@ def main(tracking_uri, output_path):
         filter_string="status = 'FINISHED'",
         order_by=["start_time"],
         search_all_experiments=True,
+        max_results=50_000,  # Max allowed by MLflow
     )
     # HACK
     data["tags.dataset"] += "__" + data["tags.validation_setting"]
