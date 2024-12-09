@@ -615,7 +615,7 @@ def make_statistical_comparisons(
         data = data[~dup]
 
     allsets_data = data.pivot(index=["estimator", "hue"], columns=["dataset", "fold"])
-    
+
     # FIXME
     # missing_metrics = allsets_data.isna().all(axis="columns")
 
@@ -637,11 +637,9 @@ def make_statistical_comparisons(
         )
         allsets_data = allsets_data.loc[:, ~missing_mask]
 
-    allsets_data = (
-        allsets_data
-        .stack(["dataset", "fold"], future_stack=True)
-        .reset_index()
-    )
+    allsets_data = allsets_data.stack(
+        ["dataset", "fold"], future_stack=True
+    ).reset_index()
 
     allsets_data = (
         allsets_data.set_index(["dataset", "fold", "estimator", "hue"])  # Keep columns
@@ -797,12 +795,20 @@ def main(config, results_table, out_crosstab):
             continue
         for validation_setting in config_object["validation_setting"]:
             outdir = Path(config_object["out"]) / validation_setting
+            dataset_subset = [  # HACK
+                d + "__" + validation_setting for d in config_object["dataset"]
+            ]
+            plot_crosstab(
+                data[
+                    data.dataset.isin(dataset_subset)
+                    & data.estimator.isin(config_object["estimator"])
+                ],
+                outdir / "run_counts.png",
+            )
             make_statistical_comparisons(
                 data=data,
                 estimator_subset=config_object["estimator"],
-                dataset_subset=[  # HACK
-                    d + "__" + validation_setting for d in config_object["dataset"]
-                ],
+                dataset_subset=dataset_subset,
                 metric_subset=config_object["scoring"],
                 main_outdir=outdir,
             )

@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import pandas as pd
 import numpy as np
 import yaml
 import click
+
 
 def load_dataset(
     dataset_info: dict, base_dir: Path
@@ -37,18 +39,35 @@ def load_dataset(
         " relative."
     ),
 )
-def main(dataset_definitions: Path, base_dir: Path = Path.cwd()):
+@click.option(
+    "--renaming",
+    "-r",
+    required=False,
+    type=click.Path(exists=True, path_type=Path, dir_okay=False),
+    help="Path to the YAML file containing name substitutions.",
+)
+def main(dataset_definitions: Path, base_dir: Path = Path.cwd(), renaming: Path = None):
     """Check the datasets defined in the given YAML file."""
     base_dir = base_dir.resolve()
     datasets_path = dataset_definitions.resolve()
 
-    with datasets_path.open() as f:
-        datasets = yaml.safe_load(f)
+    datasets = yaml.safe_load(datasets_path.read_text())
+    renaming = renaming and yaml.safe_load(renaming.read_text())
 
+    rows = []
     for dataset_name, dataset_info in datasets.items():
         # Load matrices
         X, y = load_dataset(dataset_info, base_dir)
-        print(dataset_name, y.shape, y.mean())
+        rows.append(
+            {
+                "Name": dataset_name,
+                "Shape": "${} \\times {}$".format(*y.shape),
+                "Density": f"{y.mean():.2g}",
+            }
+        )
+
+    table = pd.DataFrame.from_records(rows)
+    print(table.to_latex(index=False))
 
 
 if __name__ == "__main__":
