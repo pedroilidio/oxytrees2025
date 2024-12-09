@@ -10,6 +10,7 @@ from .bipartite_forests import bxt_bgso, bxt_gmo
 from .literature_models.nrlmf import nrlmf_sampler
 from .model_forests.estimators import (
     dwnn_similarities_bxt_bgso,
+    uniform_bxt_bgso,
     bxt_bgso_kronrls,
 )
 
@@ -37,3 +38,10 @@ nrlmf__bxt_bgso_kronrls = make_multipartite_pipeline(
     clone(bxt_bgso_kronrls),
     memory=memory,
 )
+
+nrlmf__uniform__bxt_bgso = make_multipartite_pipeline(
+    nrlmf_sampler,
+    clone(uniform_bxt_bgso),
+    memory=memory,
+)
+
