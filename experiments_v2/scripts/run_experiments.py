@@ -298,7 +298,7 @@ def main(
     skip_finished=False,
 ):
     if n_jobs < 1:
-        n_jobs = mp.cpu_count() + n_jobs
+        n_jobs = max(1, mp.cpu_count() + n_jobs)
 
     # Avoid parallelism in the backend side of some libraries.
     for var in (

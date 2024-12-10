@@ -3,9 +3,7 @@ import traceback
 from typing import Any
 import os
 import sys
-import warnings
 from pathlib import Path
-from itertools import count
 from importlib import import_module
 import multiprocessing as mp
 
@@ -26,21 +24,8 @@ BIPARTITE_SIGNATURE = ModelSignature(
     inputs=Schema([TensorSpec(type=np.dtype("float32"), shape=(2, -1, -1))]),
     outputs=Schema([TensorSpec(type=np.dtype("float64"), shape=(-1,))]),
 )
-EXPERIMENT_NAME = "empirical_complexity"
+EXPERIMENT_NAME = "empirical_complexity_analysis"
 EXPERIMENT_DESCRIPTION = "Empirical complexity of bipartite forests."
-CONFIG = {
-    "estimators": [
-        "bxt_bgso",
-        "bxt_gmo",
-        "uniform_bxt_bgso",
-        "bxt_bgso_kronrls",
-        "dwnn_similarities_bxt_bgso",
-        "bxt_bgso_logistic",
-    ],
-    "random_state": 0,
-    "factor": 1.1,
-    "start": 10,
-}
 
 
 def get_experiment_id_from_name(*, client, experiment_name, description):
@@ -110,34 +95,46 @@ def load_python_object(
     return getattr(module, obj_name), [module.__file__, *relative_modules]
 
 
+def set_n_estimators(estimator, n_estimators):
+    try:
+        return estimator.set_params(n_estimators=n_estimators)
+    except ValueError:
+        return estimator.estimator.set_params(n_estimators=n_estimators)
+
+
+# TODO: add a timeout
 def execute_run(
     *,
     client,
+    experiment_id,
     estimator,
     estimator_code_paths,
-    X,
-    y,
-    experiment_id,
-    iteration,
-    estimator_name,
+    tags,
 ):
-    data_size = y.shape[0]
+    # TODO: dependency injection to tags
+    estimator_name = tags["estimator"]
+    iteration = tags["iteration"]
+    n_estimators = tags["n_estimators"]
+    data_size = tags["data_size"]
+    random_state = tags["random_state"]
 
+    order = ("estimator", "data_size", "iteration", "random_state", "n_estimators")
     run = client.create_run(
         experiment_id=experiment_id,
-        run_name="__".join((estimator_name, str(data_size), str(iteration))),
-        tags={
-            "iteration": iteration,
-            "estimator": estimator_name,
-            "data_size": data_size,
-        },
+        run_name="__".join(str(tags[k]) for k in order),
+        tags=tags,
     )
     run_id = run.info.run_id
 
     try:
+        rng = np.random.default_rng(random_state + iteration)
+        X1, X2, y = rng.random((3, data_size, data_size))
+        X = [X1, X2]
+
+        estimator = set_n_estimators(clone(estimator), n_estimators)
         # TODO: Log fitted model?
         log_sklearn_model(client, run_id, estimator, estimator_code_paths)
-        estimator = clone(estimator)
+
         start = process_time_ns()
         estimator.fit(X, y)
         fit_time = process_time_ns() - start
@@ -150,15 +147,16 @@ def execute_run(
 
         client.log_metric(run_id, "predict_time", predict_time, step=iteration)
 
-        try:
+        # Disabled for now
+        if False and estimator_name == "bxt_bgso":  # HACK
             start = process_time_ns()
             estimator.predict(row_cartesian_product(X))
-            predict_time_bip = process_time_ns() - start
-        except Exception as e:
-            predict_time_bip = 0
+            predict_time_single = process_time_ns() - start
+        else:
+            predict_time_single = np.nan
 
         client.log_metric(
-            run_id, "predict_time_bipartite", predict_time_bip, step=iteration
+            run_id, "predict_time_single", predict_time_single, step=iteration
         )
 
         client.set_terminated(run_id)
@@ -209,15 +207,22 @@ def execute_run(
     is_flag=True,
     help="Skip experiments that have already been run.",
 )
+@click.option(
+    "--config",
+    type=click.File("r"),
+    required=True,
+    help="YAML file with configuration.",
+)
 def main(
     estimator_definitions,
     tracking_uri,
     n_jobs,
     code_path,
+    config,
     skip_finished=False,
 ):
     if n_jobs < 1:
-        n_jobs = mp.cpu_count() + n_jobs
+        n_jobs = max(1, mp.cpu_count() + n_jobs)
 
     # Avoid parallelism in the backend side of some libraries.
     for var in (
@@ -229,13 +234,9 @@ def main(
         os.environ[var] = "1"
 
     os.environ["MLFLOW_TRACKING_URI"] = tracking_uri
-
     sys.path.extend(map(str, code_path))  # HACK
 
     client = MlflowClient(tracking_uri=tracking_uri)
-    pool = mp.Pool(n_jobs)
-
-    estimators = yaml.safe_load(estimator_definitions)
 
     experiment_id = get_experiment_id_from_name(
         client=client,
@@ -243,50 +244,66 @@ def main(
         # artifact_location=artifact_location,  # TODO
         description=EXPERIMENT_DESCRIPTION,
     )
+    # Define the order of the tags to be used for checking if a run already exists.
+    order = ("estimator", "data_size", "iteration", "random_state", "n_estimators")
+
     if skip_finished:
         print("Collecting finished runs...")
         finished_runs = client.search_runs(
             filter_string="status = 'FINISHED'",
-            experiment_ids=[e.experiment_id for e in client.search_experiments()],
+            experiment_ids=experiment_id,
             max_results=50_000,  # Maximum allowed by MLflow
         )
         finished_runs = {
-            tuple(map(run.data.tags.get, ("estimator", "data_size", "iteration")))
+            tuple(str(run.data.tags[k]) for k in order)
             for run in tqdm(finished_runs, desc="Processing finished runs")
         }
 
-    current = CONFIG["start"]
-    factor = CONFIG["factor"]
-    rng = np.random.default_rng(CONFIG["random_state"])
+    estimator_definitions = yaml.safe_load(estimator_definitions)
+    config = yaml.safe_load(config)
 
-    for iteration in count():
-        data_size = int(current)
-        current *= factor
+    current = config["start"]
+    factor = config["factor"]
 
-        X1, X2, y = rng.random((3, data_size, data_size))
+    pool = mp.Pool(n_jobs)
 
-        for estimator_name in CONFIG["estimators"]:
-            estimator_path = estimators[estimator_name]
-            estimator, estimator_code_paths = load_python_object(
-                estimator_path, code_path
-            )
-
-            pool.apply_async(
-                execute_run,
-                kwds=dict(
-                    client=client,
-                    experiment_id=experiment_id,
-                    estimator=estimator,
-                    estimator_code_paths=estimator_code_paths,
-                    X=[X1, X2],
-                    y=y,
-                    iteration=iteration,
-                    estimator_name=estimator_name,
-                ),
-            )
-
-    # TODO: check if try here is correct
     try:
+        for iteration in range(200):
+            data_size = int(current)
+            current *= factor
+
+            for estimator_name in config["estimators"]:
+                tags = {
+                    "estimator": estimator_name,
+                    "data_size": data_size,
+                    "iteration": iteration,
+                    "random_state": config["random_state"],
+                    "n_estimators": config["n_estimators"],
+                }
+                if (
+                    skip_finished
+                    and tuple(str(tags[k]) for k in order) in finished_runs
+                ):
+                    print(f"Skipping {tags}")
+                    continue
+
+                print(f"Queuing {tags}")
+                estimator_path = estimator_definitions[estimator_name]
+                estimator, estimator_code_paths = load_python_object(
+                    estimator_path, code_path
+                )
+
+                pool.apply_async(
+                    execute_run,
+                    kwds=dict(
+                        client=client,
+                        experiment_id=experiment_id,
+                        estimator=estimator,
+                        estimator_code_paths=estimator_code_paths,
+                        tags=tags,
+                    ),
+                )
+
         print("Running...")
         pool.close()
         pool.join()
