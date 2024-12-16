@@ -1,33 +1,36 @@
 - out: results/literature_methods
-  estimator:
-  # - nrlmf_dwnn_square_bxt_bgso
-  - nrlmf_dwnn_similarities_bxt_bgso
-  # - ss_md_bxt_bgso
-  # - dwnn_similarities_bxt_bgso
-  # - bxt_bgso
-  - nrlmf_bxt_gmo
-  - nrlmf_bxt_bgso
-  - nrlmf
-  # - bxt_bgso_kronrls
-  - logistic
-  - nrlmf_bxt_bgso_kronrls
-  - bxt_bgso_logistic
-  - kron_rls
-  - blmnii_rls
-  # - blmnii_svm
-  - lmo_rls
-  # - dthybrid
-  - mlp
+  estimator: &literature_estimators
+  - - bxt_bgso_kronrls
+  # - - nrlmf_dwnn_similarities_bxt_bgso
+  # - - nrlmf_bxt_bgso_kronrls
+  - - nrlmf_bxt_gmo
+  - - bxt_bgso_logistic
+  -
+    # - nrlmf_dwnn_square_bxt_bgso
+    # - ss_md_bxt_bgso
+    # - dwnn_similarities_bxt_bgso
+    # - bxt_bgso
+    - nrlmf_bxt_bgso
+    - nrlmf
+    # - dwnn
+    # - bxt_bgso_kronrls
+    # - logistic
+    - kron_rls
+    - blmnii_rls
+    # - blmnii_svm
+    - lmo_rls
+    # - dthybrid
+    - mlp
   scoring: &default_scoring
   - TT__auroc
   - LT__auroc
   - TL__auroc
-  # - LL_M__auroc
+  - LL_M__auroc
 
   - TT__auprc
   - LT__auprc
   - TL__auprc
-  # - LL_M__auprc
+  - LL_M__auprc
   validation_setting: &default_validation_setting
   - TT
   - TT_50
@@ -53,51 +56,60 @@
 
 - out: results/y_reconstruction
   estimator:
-  - bxt_bgso
-  - nrlmf_bxt_bgso
-  - dwnn_square_bxt_bgso
-  - nrlmf_dwnn_square_bxt_bgso
-  - dwnn_square_ss_md_size_bxt_bgso
-  - nrlmf_dwnn_square_ss_md_size_bxt_bgso
+  -
+    - nrlmf_bxt_bgso_kronrls
+    - bxt_bgso_kronrls
+  -
+    - nrlmf_dwnn_similarities_bxt_bgso
+    - dwnn_similarities_bxt_bgso
+  -
+    - nrlmf_uniform_bxt_bgso
+    - uniform_bxt_bgso
+  - []  # Color management
   scoring: *default_scoring
   validation_setting: *default_validation_setting
   dataset: *all_datasets
   active: true
 
-- out: results/dwnn_weights
+- out: results/leaf_model
   estimator:
-  - bxt_bgso
-  - dwnn_square_bxt_bgso
-  - dwnn_softmax_bxt_bgso
-  - dwnn_similarities_bxt_bgso
-  - dwnn_max_bxt_bgso
-  - dwnn_conditional_uniform_bxt_bgso
-  - uniform_bxt_bgso
+  - - bxt_bgso_kronrls
+  - - dwnn_similarities_bxt_bgso
+  - - uniform_bxt_bgso
+    - dwnn_conditional_uniform_bxt_bgso
+  # - - bxt_bgso_logistic
+  - [] # Color management
   scoring: *default_scoring
   validation_setting: *default_validation_setting
   dataset: *all_datasets
   active: true
 
-- out: results/dynamic_supervision
-  estimator:
-  - ss_md_fixed_bxt_bgso
-  - ss_md_random_bxt_bgso
-  - ss_md_size_bxt_bgso
-  - ss_md_inverse_size_bxt_bgso
-  - ss_md_density_bxt_bgso
-  - ss_md_inverse_density_bxt_bgso
+- out: results/literature_methods_big_datasets
+  estimator: *literature_estimators
   scoring: *default_scoring
   validation_setting: *default_validation_setting
-  dataset: *all_datasets
-  active: false  # FIXME
+  dataset:
+  - dpi_i
+  - dpi_e
+  - srn
+  - ern
+  - kiba
+  - npinter
+  - mirtarbase
+  - lncrna_cancer
+  - lncrna_disease
+  - lncrna_mirna
+  - mirna_disease
+  active: false
 
-- out: results/unsupervised_impurities
+- out: results/literature_methods_small_datasets
   estimator:
-  - bxt_bgso
-  - ss_mse_bxt_bgso
-  - ss_md_bxt_bgso
-  - ss_ad_bxt_bgso
+  estimator: *literature_estimators
   scoring: *default_scoring
   validation_setting: *default_validation_setting
-  dataset: *all_datasets
-  active: false  # FIXME
+  dataset:
+  - dpi_n
+  - dpi_g
+  - davis
+  - te_pirna
+  active: false

@@ -248,24 +248,25 @@ def iter_posthoc_comparisons(
                 f"({n_groups}) to perform a test statistic."
             )
             continue
-        # pvalue_crosstable = sp.posthoc_nemenyi_friedman(
+        pvalue_crosstable = sp.posthoc_nemenyi_friedman(
         #     # pvalue_crosstable = sp.posthoc_conover_friedman(
-        #     data,
-        #     melted=True,
-        #     y_col=metric,
-        #     estimator_col=estimator_col,
-        #     fold_col=fold_col,
-        #     # p_adjust=p_adjust,
-        # )
-        pvalue_crosstable = sp.posthoc_wilcoxon(
             data,
-            val_col=metric,
+            melted=True,
+            y_col=metric,
+            block_col=fold_col,
+            block_id_col=fold_col,
             group_col=estimator_col,
-            p_adjust=p_adjust,
-            correction=True,
-            zero_method="zsplit",
-            sort=True,
+            # p_adjust=p_adjust,
         )
+        # pvalue_crosstable = sp.posthoc_wilcoxon(
+        #     data,
+        #     val_col=metric,
+        #     group_col=estimator_col,
+        #     p_adjust=p_adjust,
+        #     correction=True,
+        #     zero_method="zsplit",
+        #     sort=True,
+        # )
 
         mean_ranks = (
             data.set_index(indices)[metric]
@@ -305,56 +306,34 @@ def make_visualizations(
     n_groups = pvalue_crosstable.shape[0]
     formatted_metric_name = METRIC_FORMATTING.get(metric, metric)
 
-    # HACK
-    estimator_name = data[estimator_col].iloc[0].split("__")
-    if len(estimator_name) > 1:
-        drop = estimator_name[1]
-        data = data.copy()
-        pvalue_crosstable = pvalue_crosstable.copy()
-        mean_ranks = mean_ranks.copy()
-        data.loc[:, estimator_col] = data[estimator_col].str.split("__").str[0]
-        pvalue_crosstable.index = pvalue_crosstable.index.str.split("__").str[0]
-        pvalue_crosstable.columns = pvalue_crosstable.columns.str.split("__").str[0]
-        mean_ranks.index = mean_ranks.index.set_levels(
-            mean_ranks.index.get_level_values(estimator_col).str.split("__").str[0],
-            level=estimator_col,
-        )
-    else:
-        drop = None
-
     if data.dataset.iloc[0] == "all_datasets":
-        # formatted_metric_name += "\n(mean percentile ranks)"
-        formatted_metric_name += " (ranks)"
+        formatted_metric_name = "Percentile ranks of " + formatted_metric_name
         data = data.copy()
-        data[metric] *= 100
 
     title = f"{formatted_metric_name}\np = {omnibus_pvalue:.2e}"
 
-    if drop is not None:
-        title += f" | ILR = {drop}%"
-
     plt.title(title, wrap=True)
 
-    # plt.figure(figsize=[(n_groups + 2) / 2.54] * 2)
-    plt.figure()
+    # # plt.figure(figsize=[(n_groups + 2) / 2.54] * 2)
+    # plt.figure()
 
-    plt.title(title, wrap=True)
+    # plt.title(title, wrap=True)
 
-    ax, cbar = sp.sign_plot(
-        pvalue_crosstable,
-        annot=sp.sign_table(pvalue_crosstable),
-        fmt="s",
-        square=True,
-    )
-    cbar.remove()
-    set_axes_size(*[(n_groups + 2) / 2.54] * 2)
-    plt.savefig(sigmatrix_outpath.with_suffix(".png"), bbox_inches="tight", dpi=300)
-    plt.savefig(
-        sigmatrix_outpath.with_suffix(".pdf"),
-        transparent=True,
-        bbox_inches="tight",
-    )
-    plt.close()
+    # ax, cbar = sp.sign_plot(
+    #     pvalue_crosstable,
+    #     annot=sp.sign_table(pvalue_crosstable),
+    #     fmt="s",
+    #     square=True,
+    # )
+    # cbar.remove()
+    # set_axes_size(*[(n_groups + 2) / 2.54] * 2)
+    # plt.savefig(sigmatrix_outpath.with_suffix(".png"), bbox_inches="tight", dpi=300)
+    # plt.savefig(
+    #     sigmatrix_outpath.with_suffix(".pdf"),
+    #     transparent=True,
+    #     bbox_inches="tight",
+    # )
+    # plt.close()
 
     # plt.figure(figsize=(6, 0.5 * n_groups / 2.54 + 1))
     plt.figure()
@@ -365,7 +344,7 @@ def make_visualizations(
         crossbar_props={"marker": "."},
     )
     plt.title(title, wrap=True)
-    set_axes_size(6, 0.5 * n_groups / 2.54 + 1)
+    set_axes_size(6, 0.25 * n_groups / 2.54 + 1)
     plt.savefig(cdd_outpath.with_suffix(".png"), bbox_inches="tight", dpi=300)
     plt.savefig(
         cdd_outpath.with_suffix(".pdf"),
@@ -426,22 +405,10 @@ def make_visualizations(
         for label, tick in zip(ax.get_xticklabels(), ax.get_xticks())
     }
 
-    if hue_col is None:
-        plot_insignificance_bars(
-            positions=positions,
-            sig_matrix=pvalue_crosstable,
-        )
-    else:
-        ystart = ax.get_ylim()[1]
-        for _, hue_group in data.groupby(hue_col)[estimator_col]:
-            # Some groups are dropped by iter_posthoc_comparisons due to missing folds
-            hue_group = list(set(hue_group) & set(pvalue_crosstable.index))
-
-            plot_insignificance_bars(
-                positions=positions,
-                sig_matrix=pvalue_crosstable.loc[hue_group, hue_group],
-                ystart=ystart,
-            )
+    plot_insignificance_bars(
+        positions=positions,
+        sig_matrix=pvalue_crosstable,
+    )
 
     plt.title(title, wrap=True)
     plt.xlabel("")
@@ -481,18 +448,19 @@ def make_visualizations(
             # annotation_clip=False,
         )
 
-    # Annotate fac on the bottom right:
-    plt.annotate(
-        # f"×{fac:.0e}",
-        f"{fac:.0e}"[1:],
-        (0.95, 0.05),
-        xycoords="axes fraction",
-        backgroundcolor="white",
-        size="small",
-        horizontalalignment="center",
-        verticalalignment="center",
-        bbox=dict(facecolor="white", edgecolor="k", pad=2, linewidth=1.5),
-    )
+    if fac != 1:
+        # Annotate fac on the bottom right:
+        plt.annotate(
+            # f"×{fac:.0e}",
+            f"{1 / fac:.0e}"[1:],
+            (0.95, 0.05),
+            xycoords="axes fraction",
+            backgroundcolor="white",
+            size="small",
+            horizontalalignment="center",
+            verticalalignment="center",
+            bbox=dict(facecolor="white", edgecolor="k", pad=2, linewidth=1.5),
+        )
 
     # set_axes_size(0.3 * n_groups + 1, 3)
     set_axes_size(0.3 * (n_groups + 1), 2.7)
@@ -554,6 +522,7 @@ def make_statistical_comparisons(
     dataset_subset: list | None = None,
     metric_subset: list | None = None,
     main_outdir: Path = Path("statistical_comparisons"),
+    renaming: dict | None = None,
 ):
     data = data.copy()
     metric_names = set(data.columns) - {dataset_col, estimator_col, fold_col, hue_col}
@@ -616,16 +585,16 @@ def make_statistical_comparisons(
 
     allsets_data = data.pivot(index=["estimator", "hue"], columns=["dataset", "fold"])
 
-    # FIXME
-    # missing_metrics = allsets_data.isna().all(axis="columns")
+    missing_metrics = allsets_data.isna().all(axis="index")
 
-    # if missing_metrics.any():
-    #     print(
-    #         "The following metrics were missing for all CV folds and"
-    #         " will not be considered for rankings across all datasets:"
-    #         f"\n\n{allsets_data.loc[:, missing_metrics]}"
-    #     )
-    #     allsets_data = allsets_data.loc[:, ~missing_metrics]
+    if missing_metrics.any():
+        print(
+            "The following metrics were missing for all CV folds and"
+            " will be removed from the analysis:"
+            f"\n\n{allsets_data.loc[:, missing_metrics]}"
+        )
+        allsets_data = allsets_data.loc[:, ~missing_metrics]
+        data = allsets_data.stack(["dataset", "fold"], future_stack=True).reset_index()
 
     missing_mask = allsets_data.isna().any(axis="index")
 
@@ -645,6 +614,7 @@ def make_statistical_comparisons(
         allsets_data.set_index(["dataset", "fold", "estimator", "hue"])  # Keep columns
         .groupby(level=["dataset", "fold"])
         .rank(pct=True)  # Rank estimators per fold
+        .mul(100)  # Convert to percentile ranks
         .groupby(level=["dataset", "estimator", "hue"])  # groupby()
         .mean()  # Average ranks across folds for each estimator
         .rename_axis(index=["fold", "estimator", "hue"])  # 'dataset' -> 'fold'
@@ -657,9 +627,14 @@ def make_statistical_comparisons(
     # Average LT and TL metrics
     data = combine_LT_TL(data)
 
-    if data.isna().any().any():
-        warnings.warn("NaNs found in the data. Skipping.")
-        data = data.dropna()
+    # Rename data
+    if renaming is not None:
+        if "estimator" in renaming:
+            data["estimator"] = data["estimator"].replace(renaming["estimator"])
+        if "dataset" in renaming:
+            data["dataset"] = data["dataset"].replace(renaming["dataset"])
+        if "metric" in renaming:
+            data = data.rename(columns=renaming["metric"])
 
     # Calculate omnibus Friedman statistics per dataset
     friedman_statistics = data.groupby("dataset").apply(
@@ -674,8 +649,37 @@ def make_statistical_comparisons(
         method="fdr_bh",
     )[1]
 
+    if data.isna().any().any():
+        warnings.warn("NaNs found in the data. Skipping.")
+        data = data.dropna()
+
     main_outdir.mkdir(exist_ok=True, parents=True)
     friedman_statistics.to_csv(main_outdir / "test_statistics.tsv", sep="\t")
+
+    # Make parallel coordinates plot
+    dataset_means = (
+        data.loc[data.dataset != "all_datasets"]
+        .drop(columns=["hue", "fold"])
+        .groupby(["dataset", "estimator"])
+        .mean()
+    )
+
+    for metric_name in tqdm(dataset_means.columns, desc="Parallel coordinates"):
+        # outdir = main_outdir / "radar_plots"
+        # outdir.mkdir(exist_ok=True, parents=True)
+        # plot_radar(
+        #     data=dataset_means,
+        #     out=outdir / f"{metric_name}.png",
+        #     metric=metric_name,
+        # )
+
+        outdir = main_outdir / "parallel_coordinates"
+        outdir.mkdir(exist_ok=True, parents=True)
+        plot_parallel_coordinates(
+            data=dataset_means,
+            out=outdir / f"{metric_name}.png",
+            metric=metric_name,
+        )
 
     table_lines = []
     grouped = data.groupby("dataset", sort=False)
@@ -735,7 +739,7 @@ def make_statistical_comparisons(
         .rename_axis(["dataset", "estimator", "score"])
         .unstack(level=2)  # Set metrics as columns
     )
-    table.to_csv(main_outdir / "comparison_table.tsv", sep="\t")
+    table.to_csv(main_outdir / "comparison_table.csv")
     table.to_html(main_outdir / "comparison_table.html", escape=False)
     (
         table.apply(
@@ -758,7 +762,53 @@ def plot_crosstab(data, out):
     set_axes_size(0.3 * crosstab.shape[1], 0.3 * crosstab.shape[0])
     out.parent.mkdir(exist_ok=True, parents=True)
     plt.savefig(out, bbox_inches="tight", dpi=300)
+    plt.clf()
     print(f"Saved crosstab to {out}")
+
+
+def plot_parallel_coordinates(data, out, metric):
+    plt.figure(figsize=(12, 4))
+    sns.pointplot(
+        data=data,
+        x="dataset",
+        y=metric,
+        hue="estimator",
+        markers="d",
+        order=data.groupby("dataset")[metric].mean().sort_values().index,
+    )
+    plt.xticks(rotation=45)
+    plt.xlabel("")
+    plt.legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+    plt.grid(axis="y")
+    plt.savefig(out.with_suffix(".png"), bbox_inches="tight", dpi=300)
+    plt.savefig(out.with_suffix(".pdf"), bbox_inches="tight")
+    plt.clf()
+
+
+def plot_radar(data, out, metric):
+    fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
+
+    data = data.reset_index()
+    order = data.groupby("dataset")[metric].mean().sort_values().index
+    mapping = {name: i for i, name in enumerate(order)}
+    codes = data["dataset"].map(mapping)
+    data["coord"] = 2 * np.pi / len(order) * codes
+    unique_coords = 2 * np.pi / len(order) * np.arange(len(order))
+
+    sns.lineplot(
+        data=data,
+        x="coord",
+        y=metric,
+        hue="estimator",
+        markers="d",
+        dashes=False,
+        ax=ax,
+    )
+    ax.set_xticks(unique_coords, labels=order)
+    plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+    plt.grid(axis="y")
+    plt.savefig(out, bbox_inches="tight", dpi=300)
+    plt.clf()
 
 
 @click.command()
@@ -782,35 +832,57 @@ def plot_crosstab(data, out):
     help="Path to save a table counting runs per dataset and estimator.",
     default=BASEDIR / "results/run_counts.png",
 )
-def main(config, results_table, out_crosstab):
+@click.option(
+    "--renaming",
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Path to the YAML file containing name substitutions.",
+)
+def main(config, results_table, out_crosstab, renaming):
     """Generate statistical comparisons between run results."""
 
     data = pd.concat(map(pd.read_csv, results_table))
     out_crosstab = out_crosstab.with_suffix(".png")  # Add suffix if not present
     plot_crosstab(data, out_crosstab)
+
     config = yaml.safe_load(config.read_text())
+    renaming = renaming and yaml.safe_load(renaming.read_text())
+
+    data = data.set_index("validation_setting")
 
     for config_object in config:
         if not config_object.get("active", True):
             continue
+
+        # Convert nested list of estimators to a flat dictionary indicating the
+        # hue (color) for each estimator
+        estimator_hue = {}
+        for hue, estimator_names in enumerate(config_object["estimator"]):
+            for estimator_name in estimator_names:
+                estimator_hue[estimator_name] = str(hue)
+
+        estimator_subset = sum(config_object["estimator"], [])
+
         for validation_setting in config_object["validation_setting"]:
             outdir = Path(config_object["out"]) / validation_setting
-            dataset_subset = [  # HACK
-                d + "__" + validation_setting for d in config_object["dataset"]
-            ]
+            cv_data = data.loc[validation_setting]
+
             plot_crosstab(
-                data[
-                    data.dataset.isin(dataset_subset)
-                    & data.estimator.isin(config_object["estimator"])
+                cv_data[
+                    cv_data.estimator.isin(estimator_subset)
+                    & cv_data.dataset.isin(config_object["dataset"])
                 ],
                 outdir / "run_counts.png",
             )
+            cv_data["hue"] = cv_data["estimator"].map(estimator_hue)
+
             make_statistical_comparisons(
-                data=data,
-                estimator_subset=config_object["estimator"],
-                dataset_subset=dataset_subset,
+                data=cv_data,
+                estimator_subset=estimator_subset,
+                dataset_subset=config_object["dataset"],
                 metric_subset=config_object["scoring"],
+                renaming=renaming,
                 main_outdir=outdir,
+                hue_col="hue",
             )
 
 
