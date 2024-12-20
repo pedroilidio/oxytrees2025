@@ -1,3 +1,4 @@
+import gc
 from time import process_time_ns
 import traceback
 from typing import Any
@@ -5,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 from importlib import import_module
+from itertools import count
 import multiprocessing as mp
 
 import numpy as np
@@ -18,15 +20,12 @@ from tqdm import tqdm
 from bipartite_learn.melter import row_cartesian_product
 from bipartite_learn.tree import BipartiteExtraTreeRegressor
 
-# TODO: dependency injection for folds, dataset splits, etc.
-
-# TODO: include number of features (the one bellow is used only for unfit models)
-BIPARTITE_SIGNATURE = ModelSignature(
-    inputs=Schema([TensorSpec(type=np.dtype("float32"), shape=(2, -1, -1))]),
-    outputs=Schema([TensorSpec(type=np.dtype("float64"), shape=(-1,))]),
-)
 EXPERIMENT_NAME = "empirical_complexity_predict"
 EXPERIMENT_DESCRIPTION = "Empirical complexity of predict function of bipartite trees."
+START_SIZE = 50
+FACTOR = 1.01
+RANDOM_STATE = 0
+LOCK = mp.Lock()
 
 ESTIMATOR = BipartiteExtraTreeRegressor(
     criterion="squared_error_gso",
@@ -34,6 +33,18 @@ ESTIMATOR = BipartiteExtraTreeRegressor(
     max_features=1.0,
     random_state=0,
 )
+
+# TODO: include number of features (the one bellow is used only for unfit models)
+BIPARTITE_SIGNATURE = ModelSignature(
+    inputs=Schema([TensorSpec(type=np.dtype("float32"), shape=(2, -1, -1))]),
+    outputs=Schema([TensorSpec(type=np.dtype("float64"), shape=(-1,))]),
+)
+
+
+def error_callback(e):
+    print(e)
+    if isinstance(e, KeyboardInterrupt):
+        raise e
 
 
 def get_experiment_id_from_name(*, client, experiment_name, description):
@@ -155,10 +166,18 @@ def execute_run(
 
         client.log_metric(run_id, "predict_time", predict_time, step=iteration)
 
-        molten_X = np.asfortranarray(row_cartesian_product(X))
-        start = process_time_ns()
-        tree.apply(molten_X)
-        predict_time_single = process_time_ns() - start
+        LOCK.acquire()
+        try:
+            molten_X = np.asfortranarray(row_cartesian_product(X))
+
+            start = process_time_ns()
+            tree.apply(molten_X)
+            predict_time_single = process_time_ns() - start
+
+            del molten_X
+            gc.collect()
+        finally:
+            LOCK.release()
 
         client.log_metric(
             run_id, "predict_time_single", predict_time_single, step=iteration
@@ -175,6 +194,8 @@ def execute_run(
         except KeyboardInterrupt:
             client.update_run(run_id, status="INTERRUPTED")
             raise
+    finally:
+        LOCK.release()
 
 
 @click.command()
@@ -197,16 +218,9 @@ def execute_run(
     is_flag=True,
     help="Skip experiments that have already been run.",
 )
-@click.option(
-    "--config",
-    type=click.File("r"),
-    required=True,
-    help="YAML file with configuration.",
-)
 def main(
     tracking_uri,
     n_jobs,
-    config,
     skip_finished=False,
 ):
     if n_jobs < 1:
@@ -244,15 +258,13 @@ def main(
             for run in tqdm(finished_runs, desc="Processing finished runs")
         }
 
-    config = yaml.safe_load(config)
-
-    current = config["start"]
-    factor = config["factor"]
+    current = START_SIZE
+    factor = FACTOR
 
     pool = mp.Pool(n_jobs)
 
     try:
-        for iteration in range(100):
+        for iteration in count():
             data_size = int(current)
             current *= factor
 
@@ -271,7 +283,7 @@ def main(
             tags = {
                 "data_size": data_size,
                 "iteration": iteration,
-                "random_state": config["random_state"],
+                "random_state": RANDOM_STATE,
             }
             if skip_finished and tuple(str(tags[k]) for k in order) in finished_runs:
                 print(f"Skipping {tags}")
@@ -287,6 +299,7 @@ def main(
                     estimator=ESTIMATOR,
                     tags=tags,
                 ),
+                error_callback=error_callback,
             )
 
         print("Running...")
