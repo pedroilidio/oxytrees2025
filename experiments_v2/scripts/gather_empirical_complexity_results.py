@@ -35,7 +35,10 @@ def main(tracking_uri, output_path):
     data = mlflow.search_runs(
         filter_string="status = 'FINISHED'",
         order_by=["start_time"],
-        experiment_names=["empirical_complexity_analysis"],
+        experiment_names=[
+            "empirical_complexity_analysis",
+            "empirical_complexity_predict",
+        ],
         max_results=50_000,  # Max allowed by MLflow
     )
     data = (

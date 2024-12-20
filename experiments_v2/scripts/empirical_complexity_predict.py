@@ -16,6 +16,7 @@ from mlflow.types import TensorSpec, Schema
 from mlflow.models.signature import ModelSignature
 from tqdm import tqdm
 from bipartite_learn.melter import row_cartesian_product
+from bipartite_learn.tree import BipartiteExtraTreeRegressor
 
 # TODO: dependency injection for folds, dataset splits, etc.
 
@@ -24,8 +25,15 @@ BIPARTITE_SIGNATURE = ModelSignature(
     inputs=Schema([TensorSpec(type=np.dtype("float32"), shape=(2, -1, -1))]),
     outputs=Schema([TensorSpec(type=np.dtype("float64"), shape=(-1,))]),
 )
-EXPERIMENT_NAME = "empirical_complexity_analysis"
-EXPERIMENT_DESCRIPTION = "Empirical complexity of bipartite forests."
+EXPERIMENT_NAME = "empirical_complexity_predict"
+EXPERIMENT_DESCRIPTION = "Empirical complexity of predict function of bipartite trees."
+
+ESTIMATOR = BipartiteExtraTreeRegressor(
+    criterion="squared_error_gso",
+    max_depth=None,
+    max_features=1.0,
+    random_state=0,
+)
 
 
 def get_experiment_id_from_name(*, client, experiment_name, description):
@@ -57,7 +65,7 @@ def iter_relative_module_paths(module):
         yield imported_module.__file__
 
 
-def log_sklearn_model(client, run_id, estimator, code_paths):
+def log_sklearn_model(client, run_id, estimator):
     # TODO
     # mlflow.models.Model.log(
     #     run_id=run_id,
@@ -72,7 +80,6 @@ def log_sklearn_model(client, run_id, estimator, code_paths):
     str_params = {k: str(v) for k, v in estimator.get_params().items()}  # FIXME
     client.log_dict(run_id, str_params, "estimator_params.yml")
     client.log_param(run_id, "estimator_class", estimator.__class__.__name__)
-    client.log_param(run_id, "estimator_module", code_paths[0])
 
 
 def load_python_object(
@@ -107,17 +114,14 @@ def execute_run(
     client,
     experiment_id,
     estimator,
-    estimator_code_paths,
     tags,
 ):
     # TODO: dependency injection to tags
-    estimator_name = tags["estimator"]
     iteration = tags["iteration"]
-    n_estimators = tags["n_estimators"]
     data_size = tags["data_size"]
     random_state = tags["random_state"]
 
-    order = ("estimator", "data_size", "iteration", "random_state", "n_estimators")
+    order = ("data_size", "iteration", "random_state")
     run = client.create_run(
         experiment_id=experiment_id,
         run_name="__".join(str(tags[k]) for k in order),
@@ -128,14 +132,14 @@ def execute_run(
     try:
         rng = np.random.default_rng(random_state + iteration)
         X = [
-            rng.random((data_size, data_size), dtype=np.float32, order="F")
+            np.asfortranarray(rng.random((data_size, data_size), dtype=np.float32))
             for _ in range(2)
         ]
-        y = rng.random((data_size, data_size), dtype=np.float64, order="C")
+        y = np.ascontiguousarray(rng.random((data_size, data_size), dtype=np.float64))
 
-        estimator = set_n_estimators(clone(estimator), n_estimators)
+        estimator = clone(estimator)
         # TODO: Log fitted model?
-        log_sklearn_model(client, run_id, estimator, estimator_code_paths)
+        log_sklearn_model(client, run_id, estimator)
 
         start = process_time_ns()
         estimator.fit(X, y)
@@ -143,19 +147,18 @@ def execute_run(
 
         client.log_metric(run_id, "fit_time", fit_time, step=iteration)
 
+        tree = estimator.tree_
+
         start = process_time_ns()
-        estimator.predict(X)
+        tree.apply(X)
         predict_time = process_time_ns() - start
 
         client.log_metric(run_id, "predict_time", predict_time, step=iteration)
 
-        if data_size < 10_000 and estimator_name == "bxt_bgso":  # HACK
-            molten_X = row_cartesian_product(X).asfortranarray()
-            start = process_time_ns()
-            estimator.predict(molten_X)
-            predict_time_single = process_time_ns() - start
-        else:
-            predict_time_single = np.nan
+        molten_X = np.asfortranarray(row_cartesian_product(X))
+        start = process_time_ns()
+        tree.apply(molten_X)
+        predict_time_single = process_time_ns() - start
 
         client.log_metric(
             run_id, "predict_time_single", predict_time_single, step=iteration
@@ -176,12 +179,6 @@ def execute_run(
 
 @click.command()
 @click.option(
-    "--estimator-definitions",
-    type=click.File("r"),
-    required=True,
-    help="YAML file with estimator definitions.",
-)
-@click.option(
     "--tracking-uri",
     default="sqlite:///mlruns.db",
     help="MLflow tracking URI.",
@@ -196,15 +193,6 @@ def execute_run(
     ),
 )
 @click.option(
-    "--code-path",
-    type=click.Path(file_okay=False, path_type=Path),
-    multiple=True,
-    help=(
-        "Path to directory from where unfitted estimators and scoring functions can be"
-        " imported."
-    ),
-)
-@click.option(
     "--skip-finished",
     is_flag=True,
     help="Skip experiments that have already been run.",
@@ -216,10 +204,8 @@ def execute_run(
     help="YAML file with configuration.",
 )
 def main(
-    estimator_definitions,
     tracking_uri,
     n_jobs,
-    code_path,
     config,
     skip_finished=False,
 ):
@@ -235,9 +221,6 @@ def main(
     ):
         os.environ[var] = "1"
 
-    os.environ["MLFLOW_TRACKING_URI"] = tracking_uri
-    sys.path.extend(map(str, code_path))  # HACK
-
     client = MlflowClient(tracking_uri=tracking_uri)
 
     experiment_id = get_experiment_id_from_name(
@@ -247,7 +230,7 @@ def main(
         description=EXPERIMENT_DESCRIPTION,
     )
     # Define the order of the tags to be used for checking if a run already exists.
-    order = ("estimator", "data_size", "iteration", "random_state", "n_estimators")
+    order = ("data_size", "iteration", "random_state")
 
     if skip_finished:
         print("Collecting finished runs...")
@@ -261,7 +244,6 @@ def main(
             for run in tqdm(finished_runs, desc="Processing finished runs")
         }
 
-    estimator_definitions = yaml.safe_load(estimator_definitions)
     config = yaml.safe_load(config)
 
     current = config["start"]
@@ -270,41 +252,42 @@ def main(
     pool = mp.Pool(n_jobs)
 
     try:
-        for iteration in range(200):
+        for iteration in range(100):
             data_size = int(current)
             current *= factor
 
-            for estimator_name in config["estimators"]:
-                tags = {
-                    "estimator": estimator_name,
-                    "data_size": data_size,
-                    "iteration": iteration,
-                    "random_state": config["random_state"],
-                    "n_estimators": config["n_estimators"],
-                }
-                if (
-                    skip_finished
-                    and tuple(str(tags[k]) for k in order) in finished_runs
-                ):
-                    print(f"Skipping {tags}")
-                    continue
+            # Get the size of the molten X matrix
+            # 4 bytes for each float32 element
+            molten_size = (data_size**2) * (data_size * 2) * 4
 
-                print(f"Queuing {tags}")
-                estimator_path = estimator_definitions[estimator_name]
-                estimator, estimator_code_paths = load_python_object(
-                    estimator_path, code_path
+            # Stop if the molten matrix is larger than 100 GB
+            if molten_size > 100e9:
+                print(
+                    f"Stopping at data_size={data_size}"
+                    f" (molten_size={molten_size/1e9:.2f} GB)"
                 )
+                break
 
-                pool.apply_async(
-                    execute_run,
-                    kwds=dict(
-                        client=client,
-                        experiment_id=experiment_id,
-                        estimator=estimator,
-                        estimator_code_paths=estimator_code_paths,
-                        tags=tags,
-                    ),
-                )
+            tags = {
+                "data_size": data_size,
+                "iteration": iteration,
+                "random_state": config["random_state"],
+            }
+            if skip_finished and tuple(str(tags[k]) for k in order) in finished_runs:
+                print(f"Skipping {tags}")
+                continue
+
+            print(f"Queuing {tags}")
+
+            pool.apply_async(
+                execute_run,
+                kwds=dict(
+                    client=client,
+                    experiment_id=experiment_id,
+                    estimator=ESTIMATOR,
+                    tags=tags,
+                ),
+            )
 
         print("Running...")
         pool.close()
