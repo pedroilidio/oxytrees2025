@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -47,13 +49,15 @@ def plot_critical_difference_diagram(
     sig_matrix: pd.DataFrame,
     *,
     ax = None,
-    label_fmt_left: str = '{label} ({rank:.2g})',
-    label_fmt_right: str = '({rank:.2g}) {label}',
+    label_fmt_left: str = '{label} ({rank:4.1f})',
+    label_fmt_right: str = '({rank:4.1f}) {label}',
     label_props: dict = None,
     marker_props: dict = None,
     elbow_props: dict = None,
     crossbar_props: dict = None,
-    text_h_margin: float = 0.01
+    text_h_margin: float = 0.01,
+    hue: Sequence | dict | None = None,
+    hue_order: Sequence | None = None
 ) -> dict[str, list]:
     """Plot a Critical Difference diagram from ranks and post-hoc results.
 
@@ -123,6 +127,26 @@ def plot_critical_difference_diagram(
 
     [2] https://mirkobunse.github.io/CriticalDifferenceDiagrams.jl/stable/
     """
+    ranks = pd.Series(ranks)  # Standardize if ranks is dict
+    if hue_order is None:
+        hue_order = ranks.index
+
+    if hue is None:
+        # Each group assigned to a different color
+        hue = pd.Series(hue_order, index=hue_order)
+    else:
+        if isinstance(hue, dict):
+            hue = pd.Series(hue).reindex(hue_order)
+        elif isinstance(hue, pd.Series):
+            hue = hue.reindex(hue_order)
+        elif isinstance(hue, Sequence):
+            hue = pd.Series(hue, index=hue_order)
+        else:
+            raise ValueError("'hue' must be a Series, dict, or array-like")
+
+    # Assign colors to each group based on the hue
+    colors = pd.Series(pd.factorize(hue)[0], index=hue.index).apply('C{}'.format)
+
     elbow_props = elbow_props or {}
     marker_props = dict(zorder=3) | (marker_props or {})
     label_props = dict(va='center') | (label_props or {})
@@ -151,7 +175,6 @@ def plot_critical_difference_diagram(
         dtype=bool,
     )
 
-    ranks = pd.Series(ranks)  # Standardize if ranks is dict
     points_left, points_right = np.array_split(ranks.sort_values(), 2)
 
     # Create stacking of crossbars: for each level, try to fit the crossbar,
@@ -180,21 +203,22 @@ def plot_critical_difference_diagram(
         """Plot each marker + elbow + label."""
         ypos = lowest_crossbar_ypos - 1
         for label, rank in points.items():
-            elbow, *_ = ax.plot(
-                [xpos, rank, rank],
-                [ypos, ypos, 0],
-                **elbow_props,
+            color = colors.loc[label]
+            elbows.append(
+                ax.plot(
+                    [xpos, rank, rank],
+                    [ypos, ypos, 0],
+                    **dict(color=color) | elbow_props,
+                )
             )
-            elbows.append(elbow)
-            curr_color = elbow.get_color()
             markers.append(
-                ax.scatter(rank, 0, **dict(color=curr_color) | marker_props)
+                ax.scatter(rank, 0, **dict(color=color) | marker_props)
             )
             labels.append(
                 ax.annotate(
                     label_fmt.format(label=label, rank=rank),
                     (xpos, ypos),
-                    **dict(color=curr_color) | label_props,
+                    **dict(color=color) | label_props,
                 )
             )
             ypos -= 1

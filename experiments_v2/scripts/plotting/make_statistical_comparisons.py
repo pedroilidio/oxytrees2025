@@ -71,6 +71,14 @@ def set_axes_size(w, h, ax=None):
     ax.figure.set_size_inches(figw, figh)
 
 
+def make_raw_latex_table(data, outdir):
+    result = data.drop(columns=["hue"]).groupby(["dataset", "estimator", "validation_setting"]).mean()
+    maxes = result.groupby(level=["dataset", "validation_setting"]).idxmax()
+
+    breakpoint()
+    outdir.mkdir(exist_ok=True, parents=True)
+
+
 def plot_insignificance_bars(*, positions, sig_matrix, ystart=None, ax=None, **kwargs):
     ax = ax or plt.gca()
     ylim = ax.get_ylim()
@@ -249,7 +257,7 @@ def iter_posthoc_comparisons(
             )
             continue
         pvalue_crosstable = sp.posthoc_nemenyi_friedman(
-        #     # pvalue_crosstable = sp.posthoc_conover_friedman(
+            #     # pvalue_crosstable = sp.posthoc_conover_friedman(
             data,
             melted=True,
             y_col=metric,
@@ -291,6 +299,12 @@ def make_visualizations(
     omnibus_pvalue,
     hue_col=None,
 ):
+    n_decimals = np.ceil(-np.log10(omnibus_pvalue))
+    short_pvalue = np.ceil(omnibus_pvalue * 10**n_decimals) / 10**n_decimals
+    short_pvalue_str = np.format_float_scientific(
+        short_pvalue, precision=0, exp_digits=1
+    )
+
     # Define base paths
     sigmatrix_outpath = outdir / f"significance_matrices/{metric}"
     cdd_outpath = outdir / f"critical_difference_diagrams/{metric}"
@@ -306,11 +320,39 @@ def make_visualizations(
     n_groups = pvalue_crosstable.shape[0]
     formatted_metric_name = METRIC_FORMATTING.get(metric, metric)
 
+    plt.figure()
+    hue_dict = (
+        data[[estimator_col, hue_col]]
+        .drop_duplicates()
+        .set_index(estimator_col)[hue_col]
+        .sort_values(ascending=False)
+    )
+    plot_critical_difference_diagram(
+        (1 - mean_ranks.droplevel(hue_col)) * (n_groups - 1) + 1,
+        pvalue_crosstable,
+        crossbar_props={"marker": "."},
+        label_props={"fontweight": "bold"},
+        hue=hue_dict,
+        hue_order=hue_dict.index,
+    )
+    plt.title(f"Average rank of {formatted_metric_name} (p < {short_pvalue_str})")
+
+    set_axes_size(2, 0.25 * n_groups / 2.54 + 1)
+    plt.savefig(cdd_outpath.with_suffix(".png"), bbox_inches="tight", dpi=300)
+    plt.savefig(
+        cdd_outpath.with_suffix(".pdf"),
+        transparent=True,
+        bbox_inches="tight",
+        pad_inches=0.02,
+    )
+    plt.close()
+
+    # HACK
     if data.dataset.iloc[0] == "all_datasets":
         formatted_metric_name = "Percentile ranks of " + formatted_metric_name
         data = data.copy()
 
-    title = f"{formatted_metric_name}\np = {omnibus_pvalue:.2e}"
+    title = f"{formatted_metric_name}\np < {short_pvalue_str}"
 
     plt.title(title, wrap=True)
 
@@ -336,22 +378,6 @@ def make_visualizations(
     # plt.close()
 
     # plt.figure(figsize=(6, 0.5 * n_groups / 2.54 + 1))
-    plt.figure()
-
-    plot_critical_difference_diagram(
-        mean_ranks.droplevel(hue_col),
-        pvalue_crosstable,
-        crossbar_props={"marker": "."},
-    )
-    plt.title(title, wrap=True)
-    set_axes_size(6, 0.25 * n_groups / 2.54 + 1)
-    plt.savefig(cdd_outpath.with_suffix(".png"), bbox_inches="tight", dpi=300)
-    plt.savefig(
-        cdd_outpath.with_suffix(".pdf"),
-        transparent=True,
-        bbox_inches="tight",
-    )
-    plt.close()
 
     # order = (
     #     mean_ranks
@@ -523,6 +549,7 @@ def make_statistical_comparisons(
     metric_subset: list | None = None,
     main_outdir: Path = Path("statistical_comparisons"),
     renaming: dict | None = None,
+    all_datasets_only: bool = False,
 ):
     data = data.copy()
     metric_names = set(data.columns) - {dataset_col, estimator_col, fold_col, hue_col}
@@ -622,7 +649,10 @@ def make_statistical_comparisons(
         .assign(dataset="all_datasets")
     )
 
-    data = pd.concat([allsets_data, data], ignore_index=True, sort=False)
+    if all_datasets_only:
+        data = allsets_data
+    else:
+        data = pd.concat([allsets_data, data], ignore_index=True, sort=False)
 
     # Average LT and TL metrics
     data = combine_LT_TL(data)
@@ -791,7 +821,7 @@ def plot_radar(data, out, metric):
     data = data.reset_index()
     order = data.groupby("dataset")[metric].mean().sort_values().index
     mapping = {name: i for i, name in enumerate(order)}
-    codes = data["dataset"].map(mapping)
+    codes = data["dataset"].replace(mapping)
     data["coord"] = 2 * np.pi / len(order) * codes
     unique_coords = 2 * np.pi / len(order) * np.arange(len(order))
 
@@ -837,7 +867,12 @@ def plot_radar(data, out, metric):
     type=click.Path(dir_okay=False, path_type=Path),
     help="Path to the YAML file containing name substitutions.",
 )
-def main(config, results_table, out_crosstab, renaming):
+@click.option(
+    "--all-datasets-only",
+    is_flag=True,
+    help="Only generate plots for all datasets together.",
+)
+def main(config, results_table, out_crosstab, renaming, all_datasets_only):
     """Generate statistical comparisons between run results."""
 
     data = pd.concat(map(pd.read_csv, results_table))
@@ -873,7 +908,7 @@ def main(config, results_table, out_crosstab, renaming):
                 ],
                 outdir / "run_counts.png",
             )
-            cv_data["hue"] = cv_data["estimator"].map(estimator_hue)
+            cv_data["hue"] = cv_data["estimator"].replace(estimator_hue)
 
             make_statistical_comparisons(
                 data=cv_data,
@@ -883,6 +918,7 @@ def main(config, results_table, out_crosstab, renaming):
                 renaming=renaming,
                 main_outdir=outdir,
                 hue_col="hue",
+                all_datasets_only=all_datasets_only,
             )
 
 
