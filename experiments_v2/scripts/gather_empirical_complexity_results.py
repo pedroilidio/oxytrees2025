@@ -39,7 +39,6 @@ def main(tracking_uri, output_directory):
     )
     data = (
         data.dropna(subset=index_cols)
-        .drop_duplicates(index_cols, keep="last")
         .set_index(index_cols)
         .filter(like="metrics.", axis="columns")
         .reset_index()
@@ -70,8 +69,7 @@ def main(tracking_uri, output_directory):
         max_results=50_000,  # Max allowed by MLflow
     )
     data = (
-        data.dropna(subset=index_cols)
-        .drop_duplicates(index_cols, keep="last")
+        data.dropna(subset=index_cols, how="all")
         .set_index(index_cols)
         .filter(like="metrics.", axis="columns")
         .reset_index()
