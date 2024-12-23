@@ -22,15 +22,18 @@ from bipartite_learn.tree import BipartiteExtraTreeRegressor
 
 EXPERIMENT_NAME = "empirical_complexity_predict"
 EXPERIMENT_DESCRIPTION = "Empirical complexity of predict function of bipartite trees."
-START_SIZE = 50
-FACTOR = 1.01
+START_SIZE = 100
+END_SIZE = 10_000
+N_POINTS = 1000
+MAX_MEMORY = 32e9  # 32 GB
 RANDOM_STATE = 0
 LOCK = mp.Lock()
 
 ESTIMATOR = BipartiteExtraTreeRegressor(
     criterion="squared_error_gso",
     max_depth=None,
-    max_features=1.0,
+    max_col_features=1,  # Completely random trees
+    max_row_features=1,  # Completely random trees
     random_state=0,
 )
 
@@ -125,6 +128,7 @@ def execute_run(
     client,
     experiment_id,
     estimator,
+    max_memory,
     tags,
 ):
     # TODO: dependency injection to tags
@@ -157,31 +161,68 @@ def execute_run(
         fit_time = process_time_ns() - start
 
         client.log_metric(run_id, "fit_time", fit_time, step=iteration)
+        client.log_metric(run_id, "log_fit_time", np.log(fit_time), step=iteration)
 
         tree = estimator.tree_
 
-        start = process_time_ns()
-        tree.apply(X)
-        predict_time = process_time_ns() - start
-
-        client.log_metric(run_id, "predict_time", predict_time, step=iteration)
-
+        # Avoid other processes to lock while timing the predict function
         LOCK.acquire()
         try:
-            molten_X = np.asfortranarray(row_cartesian_product(X))
-
             start = process_time_ns()
-            tree.apply(molten_X)
-            predict_time_single = process_time_ns() - start
-
-            del molten_X
-            gc.collect()
+            tree.apply(X)
+            predict_time = process_time_ns() - start
         finally:
             LOCK.release()
 
+        client.log_metric(run_id, "predict_time", predict_time, step=iteration)
         client.log_metric(
-            run_id, "predict_time_single", predict_time_single, step=iteration
+            run_id, "log_predict_time", np.log(predict_time), step=iteration
         )
+
+        # Get the size of the molten X matrix
+        # 4 bytes for each float32 element
+        # molten_size = (data_size ** 2) * (data_size * 2) * 4
+        molten_size = 8 * data_size ** 3
+
+        # Stop if the molten matrix is larger than 100 GB
+        if molten_size > max_memory:
+            print(
+                f"No predict_time_single for data_size={data_size}"
+                f" (molten_size={molten_size/1e9:.2f} GB > {MAX_MEMORY/1e9:.2f} GB)"
+            )
+
+        else:
+            LOCK.acquire()
+            try:
+                start = process_time_ns()
+                molten_X = np.asfortranarray(row_cartesian_product(X))
+                melting_time = process_time_ns() - start
+
+                client.log_metric(
+                    run_id, "melting_time", melting_time, step=iteration
+                )
+                client.log_metric(
+                    run_id, "log_melting_time", np.log(melting_time), step=iteration
+                )
+
+                start = process_time_ns()
+                tree.apply(molten_X)
+                predict_time_single = process_time_ns() - start
+
+                del molten_X
+                gc.collect()
+
+                client.log_metric(
+                    run_id, "predict_time_single", predict_time_single, step=iteration
+                )
+                client.log_metric(
+                    run_id,
+                    "log_predict_time_single",
+                    np.log(predict_time_single),
+                    step=iteration,
+                )
+            finally:
+                LOCK.release()
 
         client.set_terminated(run_id)
 
@@ -256,28 +297,13 @@ def main(
             for run in tqdm(finished_runs, desc="Processing finished runs")
         }
 
-    current = START_SIZE
-    factor = FACTOR
-
     pool = mp.Pool(n_jobs)
 
     try:
-        for iteration in count():
-            data_size = int(current)
-            current *= factor
-
-            # Get the size of the molten X matrix
-            # 4 bytes for each float32 element
-            molten_size = (data_size**2) * (data_size * 2) * 4
-
-            # Stop if the molten matrix is larger than 100 GB
-            if molten_size > 100e9:
-                print(
-                    f"Stopping at data_size={data_size}"
-                    f" (molten_size={molten_size/1e9:.2f} GB)"
-                )
-                break
-
+        for iteration, data_size in enumerate(
+            np.geomspace(START_SIZE, END_SIZE, N_POINTS)
+        ):
+            data_size = int(data_size)
             tags = {
                 "data_size": data_size,
                 "iteration": iteration,
@@ -295,6 +321,7 @@ def main(
                     client=client,
                     experiment_id=experiment_id,
                     estimator=ESTIMATOR,
+                    max_memory=MAX_MEMORY,
                     tags=tags,
                 ),
                 error_callback=error_callback,
