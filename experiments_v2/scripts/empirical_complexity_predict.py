@@ -194,8 +194,6 @@ def execute_run(
         except KeyboardInterrupt:
             client.update_run(run_id, status="INTERRUPTED")
             raise
-    finally:
-        LOCK.release()
 
 
 @click.command()
