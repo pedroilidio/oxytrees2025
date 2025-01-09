@@ -16,70 +16,117 @@ ESTIMATOR_RENAMING = {
 }
 
 
-def plot_empirical_complexity_results(*, data: pd.DataFrame, outdir: Path):
-    reg_cutoff = 150
-    xlabel = "Number of instances in both dimensions"
+def plot_data_size_vs_time(
+    *,
+    data: pd.DataFrame,
+    reg_data: pd.DataFrame,
+    data_size_col: str,
+    time_col: str,
+    group_col: str,
+    ylabel: str = "Training time (minutes)",
+    xlabel: str = "Data size",
+):
+    plt.subplots(1, 3, figsize=(18, 4))
 
-    # Convert nanoseconds to minutes
-    data.loc[:, ["fit_time", "predict_time", "predict_time_single"]] /= 60e9
-
-    plt.subplots(1, 2, figsize=(12, 4))
-
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.grid(axis="y")
     plt.xlabel(xlabel)
-    plt.ylabel("Training time (minutes)")
+    plt.ylabel(ylabel)
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.xscale("log")
     plt.yscale("log")
 
-    for estimator, estimator_data in data.groupby("estimator"):
-        plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 3)
+    plt.xlabel(xlabel)
+    plt.ylabel("Residuals")
+    plt.xscale("log")
+    # plt.yscale("log")
+
+    for i, (estimator, estimator_data) in enumerate(data.groupby(group_col)):
+        plt.subplot(1, 3, 1)
         plt.scatter(
-            estimator_data.data_size,
-            estimator_data.fit_time,
+            estimator_data[data_size_col],
+            estimator_data[time_col],
             label=estimator,
             marker="|",
+            color=f"C{i}",
         )
 
-        plt.subplot(1, 2, 2)
+        plt.subplot(1, 3, 2)
         plot = plt.scatter(
-            estimator_data.data_size,
-            estimator_data.fit_time,
-            # np.log2(estimator_data.data_size),
-            # np.log2(estimator_data.fit_time),
-            # label=estimator,
+            estimator_data[data_size_col],
+            estimator_data[time_col],
             marker="|",
+            color=f"C{i}",
         )
-        color = plot.get_facecolors()[0]
-        xlim = plt.xlim()
-        ylim = plt.ylim()
 
-        plt.axvline(reg_cutoff, color="black", linestyle="--")
+    plt.subplot(1, 3, 2)
+    xlim = plt.xlim()
+    ylim = plt.ylim()
 
-        reg_data = estimator_data.loc[:, ["data_size", "fit_time"]].dropna()
-        reg_data = reg_data.loc[reg_data.data_size > reg_cutoff]
-
+    for i, (group_name, group_data) in enumerate(reg_data.groupby(group_col)):
+        reg_data = group_data.loc[:, [data_size_col, time_col]].dropna()
         lr = stats.linregress(
-            np.log2(reg_data.data_size).values,
-            np.log2(reg_data.fit_time).values,
+            np.log2(reg_data[data_size_col]).values,
+            np.log2(reg_data[time_col]).values,
         )
-
         x = np.linspace(xlim[0], xlim[1], 5)
+
+        plt.subplot(1, 3, 2)
         plt.plot(
             x,
-            x**lr.slope * 2**lr.intercept,
+            x ** lr.slope * 2 ** lr.intercept,
             "-",
-            color=color,
-            label=f"{estimator} (${lr.slope:.3g} \pm {lr.stderr:.2g}$)",
+            color=f"C{i}",
+            label=f"{group_name} (${lr.slope:.3g} \pm {lr.stderr:.2g}$)",
         )
-        plt.xlim(xlim)
-        plt.ylim(ylim)
 
-    # plt.legend(bbox_to_anchor=(1.01, 1), loc="upper left")
+        residuals = (
+            reg_data[time_col] - reg_data[data_size_col] ** lr.slope * 2**lr.intercept
+        )
+        residual_bins = [np.mean(a) for a in np.array_split(residuals, 20)]
+        bin_positions = [np.mean(a) for a in np.array_split(reg_data[data_size_col], 20)]
+
+        plt.subplot(1, 3, 3)
+        plt.plot(
+            # reg_data[data_size_col],
+            # residuals,
+            bin_positions,
+            residual_bins,
+            # np.log2(np.abs(residuals) * 100 + 1) * np.sign(residuals),
+            "|",
+            color=f"C{i}",
+            label=group_name,
+        )
+
+    plt.subplot(1, 3, 2)
+    plt.xlim(xlim)
+    plt.ylim(ylim)
+
     plt.legend(loc="upper left", framealpha=1)
+
+
+def plot_empirical_complexity_fit(*, data: pd.DataFrame, outdir: Path):
+    xlabel = "Number of instances in each dimension"
+    reg_cutoff = 200
+
+    # Convert nanoseconds to minutes
+    data.loc[:, "fit_time"] /= 60e9
+    reg_data = data.loc[data.data_size > reg_cutoff]
+
+    plot_data_size_vs_time(
+        data=data,
+        reg_data=reg_data,
+        data_size_col="data_size",
+        time_col="fit_time",
+        group_col="estimator",
+        xlabel=xlabel,
+        ylabel="Training time (minutes)",
+    )
+    plt.axvline(reg_cutoff, color="black", linestyle="--", label="Regression cutoff")
 
     outdir.mkdir(parents=True, exist_ok=True)
     out = outdir / "training_empirical_complexity"
@@ -89,76 +136,59 @@ def plot_empirical_complexity_results(*, data: pd.DataFrame, outdir: Path):
     )
     plt.close()
 
-    # =====================================
 
-    reg_cutoff = 150
+def plot_empirical_complexity_predict(*, data: pd.DataFrame, outdir: Path):
+    predict_time_cutoff = 4000
+    predict_time_single_cutoff = 400
+    renaming = {
+        "predict_time": "Oxytree (batch)",
+        "predict_time_single": "PBCT (individual)",
+    }
+
+    data = data.copy()
+
+    # Convert nanoseconds to minutes
+    data.loc[:, ["predict_time", "predict_time_single"]] /= 60e9
+
     predict_data = data.loc[:, ["data_size", "predict_time", "predict_time_single"]]
-    predict_data = predict_data.dropna()
-    predict_data = predict_data.loc[predict_data.predict_time_single < 0.8]
+    predict_data = predict_data.melt(
+        id_vars="data_size",
+        value_vars=["predict_time", "predict_time_single"],
+        var_name="predict_function",
+    )
+    predict_data = predict_data.sort_values("predict_function")
 
-    plt.subplots(1, 2, figsize=(12, 4))
-
-    plt.subplot(1, 2, 1)
-    plt.grid(axis="y")
-    plt.ylabel("Prediction time (minutes)")
-    plt.xlabel(xlabel)
-
-    plt.subplot(1, 2, 2)
-    plt.xlabel(xlabel)
-    plt.xscale("log")
-    plt.yscale("log")
-
-    for predict_function, new_name in (
-        ("predict_time", "Batch"),
-        ("predict_time_single", "Individual"),
-    ):
-        plt.subplot(1, 2, 1)
-
-        plot = plt.scatter(
-            predict_data.data_size,
-            predict_data[predict_function],
-            marker="|",
+    # Apply cuttoffs to the data
+    reg_data = predict_data.loc[
+        (
+            (predict_data.predict_function == "predict_time")
+            & (predict_data.data_size > predict_time_cutoff)
         )
-        color = plot.get_facecolors()[0]
-
-        reg_data = predict_data.loc[
-            predict_data.data_size > reg_cutoff, ["data_size", predict_function]
-        ]
-        lr = stats.linregress(
-            np.log2(reg_data.data_size).values,
-            np.log2(reg_data[predict_function]).values,
+        | (
+            (predict_data.predict_function == "predict_time_single")
+            & (predict_data.data_size > predict_time_single_cutoff)
         )
+    ]
 
-        plt.subplot(1, 2, 2)
-        plt.axvline(reg_cutoff, color="black", linestyle="--")
-        plt.scatter(
-            predict_data.data_size,
-            predict_data[predict_function],
-            marker="|",
-        )
-        xlim = plt.xlim()
-        ylim = plt.ylim()
+    # Rename the predict function
+    predict_data.loc[:, "predict_function"] = predict_data.predict_function.replace(
+        renaming
+    )
+    reg_data.loc[:, "predict_function"] = reg_data.predict_function.replace(renaming)
 
-        x = np.linspace(xlim[0], xlim[1], 5)
-        plt.plot(
-            x,
-            x**lr.slope * 2**lr.intercept,
-            "-",
-            color=color,
-            label=f"{new_name} (${lr.slope:.3g} \pm {lr.stderr:.2g}$)",
-        )
-        # plt.axline(
-        #     xy1=(0, lr.intercept_),
-        #     slope=lr.coef_[0],
-        #     color=color,
-        #     linestyle="-",
-        #     label=f"{new_name} ({lr.coef_[0]:.3g})",
-        # )
-        plt.xlim(xlim)
-        plt.ylim(ylim)
+    plot_data_size_vs_time(
+        data=predict_data,
+        reg_data=reg_data,
+        data_size_col="data_size",
+        time_col="value",
+        group_col="predict_function",
+        xlabel="Number of instances in each dimension",
+        ylabel="Prediction time (minutes)",
+    )
 
-    # plt.legend(bbox_to_anchor=(1.01, 1), loc="upper left")
-    plt.legend(loc="upper left", framealpha=1)
+    # Possible because of sorting
+    plt.axvline(predict_time_cutoff, color="C0", linestyle="--")
+    plt.axvline(predict_time_single_cutoff, color="C1", linestyle="--")
 
     outdir.mkdir(parents=True, exist_ok=True)
     out = outdir / "predicting_empirical_complexity"
@@ -172,9 +202,20 @@ def plot_empirical_complexity_results(*, data: pd.DataFrame, outdir: Path):
 
 @click.command()
 @click.option(
-    "--data-path",
-    "--data",
-    "-d",
+    "--fit-results-path",
+    "-f",
+    type=click.Path(
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+        path_type=Path,
+        exists=True,
+    ),
+    required=True,
+)
+@click.option(
+    "--predict-results-path",
+    "-p",
     type=click.Path(
         dir_okay=False,
         readable=True,
@@ -197,22 +238,13 @@ def plot_empirical_complexity_results(*, data: pd.DataFrame, outdir: Path):
     ),
     required=True,
 )
-# @click.option(
-#     "--renaming",
-#     type=click.Path(dir_okay=False, path_type=Path),
-#     help="Path to the YAML file containing name substitutions.",
-# )
-def main(data_path, outdir):
-    data = pd.read_csv(data_path)
+def main(fit_results_path, predict_results_path, outdir):
+    fit_data = pd.read_csv(fit_results_path)
+    fit_data["estimator"] = fit_data["estimator"].map(ESTIMATOR_RENAMING)
+    plot_empirical_complexity_fit(data=fit_data, outdir=outdir)
 
-    # renaming = renaming and yaml.safe_load(renaming.open())
-    # if renaming:
-    #     data["estimator"] = data["estimator"].replace(renaming["estimator"])
-
-    # Use only estimators that are present in the renaming dictionary
-    data["estimator"] = data["estimator"].map(ESTIMATOR_RENAMING)
-
-    plot_empirical_complexity_results(data=data, outdir=outdir)
+    predict_data = pd.read_csv(predict_results_path)
+    plot_empirical_complexity_predict(data=predict_data, outdir=outdir)
 
 
 if __name__ == "__main__":

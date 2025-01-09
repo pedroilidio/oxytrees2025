@@ -61,17 +61,32 @@ def check_estimator(estimator_object_path, code_paths):
         raise AssertionError(f"Error predicting with estimator: {e} != (35,)")
 
 
-def check_estimators(estimators_path: Path, code_paths: list[Path], n_jobs: int):
+def check_estimators(
+    estimators_path: Path,
+    code_paths: list[Path],
+    n_jobs: int,
+    estimator_subset: list[str] | None,
+):
     with estimators_path.open() as f:
         estimators = yaml.safe_load(f)
+
+    if estimator_subset:
+        estimators = {k: v for k, v in estimators.items() if k in estimator_subset}
+
+    def error_callback(e):
+        raise AssertionError(f"Error checking estimator: {e}")
 
     count_failed = 0
     count_timedout = 0
     with mp.Pool(n_jobs) as pool:
         for estimator_name, estimator_path in estimators.items():
             try:
-                proc = pool.apply_async(check_estimator, (estimator_path, code_paths))
-                proc.get(timeout=30)
+                proc = pool.apply_async(
+                    check_estimator,
+                    (estimator_path, code_paths),
+                    error_callback=error_callback,
+                )
+                proc.get(timeout=5)
             except AssertionError as e:
                 count_failed += 1
                 print(f"* [X] {estimator_name}: {e}")
@@ -80,6 +95,8 @@ def check_estimators(estimators_path: Path, code_paths: list[Path], n_jobs: int)
                 print(f"* [X] {estimator_name}: {e}")
             else:
                 print(f"[OK!] {estimator_name}")
+        
+    pool.join()
 
     print(
         f"\nChecks finished. {count_failed} estimators failed."
@@ -110,7 +127,13 @@ def check_estimators(estimators_path: Path, code_paths: list[Path], n_jobs: int)
     default=1,
     help="Number of parallel jobs to run.",
 )
-def main(estimator_definitions, code_path, n_jobs):
+@click.option(
+    "--estimator-subset",
+    "-s",
+    multiple=True,
+    help="Subset of estimators to check.",
+)
+def main(estimator_definitions, code_path, n_jobs, estimator_subset):
     """Check the estimators defined in the given YAML file."""
     for var in (
         "OMP_NUM_THREADS",
@@ -120,7 +143,7 @@ def main(estimator_definitions, code_path, n_jobs):
     ):
         os.environ[var] = "1"
 
-    check_estimators(estimator_definitions, list(code_path), n_jobs)
+    check_estimators(estimator_definitions, list(code_path), n_jobs, estimator_subset)
 
 
 if __name__ == "__main__":

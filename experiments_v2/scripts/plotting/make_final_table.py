@@ -4,6 +4,8 @@ import warnings
 import pandas as pd
 import yaml
 import click
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 # TODO: move to separate file
@@ -35,15 +37,53 @@ def combine_LT_TL(original_data):
     return data.reset_index()
 
 
+def plot_masking_vs_score(data: pd.DataFrame, outdir: Path):
+    data = data.groupby(
+        level=["dataset", "estimator", "validation_setting", "metric"]
+    ).mean()
+    reldata = (data / data.loc[pd.IndexSlice[:, :, "0\\%"]]).dropna()
+    reldata = reldata.sort_index(level="validation_setting")
+
+    for metric, g in reldata.groupby(level="metric"):
+        sns.lineplot(
+            data=g,
+            x="validation_setting",
+            y="value",
+            hue="estimator",
+            errorbar=("ci", False),
+            # errorbar="sd",
+            # err_style="bars",
+            marker="o",
+        )
+        plt.xlabel("Masking percent")
+        plt.ylabel(metric + " (relative to 0% masking)")
+        outpath = outdir / f"{metric}.png"
+        plt.savefig(outpath)
+        print(f"Saved {metric} to {outpath}")
+        plt.clf()
 
 
 def make_final_table(data: pd.DataFrame, outdir: Path):
+    alldata = (
+        data.groupby(level=["dataset", "estimator", "validation_setting", "metric"])
+        .mean()
+        .groupby(level=["dataset", "validation_setting", "metric"])
+        .rank(ascending=False)
+        .mul(-1)  # HACK
+        .reset_index("dataset")
+        .assign(dataset="All datasets")
+        .set_index("dataset", append=True)
+        .reorder_levels(["dataset", "estimator", "validation_setting", "metric"])
+    )
+
+    data = pd.concat([data, alldata])
+
     result = data.groupby(
         level=["dataset", "estimator", "validation_setting", "metric"]
     ).mean()
+
     for metric, metric_group in result.groupby(level="metric", group_keys=False):
         n_estimators = metric_group.index.get_level_values("estimator").nunique()
-
         metric_group = metric_group.value
         maxes = (
             metric_group.groupby(level=["dataset", "validation_setting"])
@@ -56,6 +96,7 @@ def make_final_table(data: pd.DataFrame, outdir: Path):
             .apply("{:.0f}".format)
         )
 
+        metric_group = metric_group.abs()  # HACK
         metric_group = metric_group.map("{:.3f}".format) + "(" + ranks + ")"
 
         metric_group.loc[maxes] = metric_group.loc[maxes].map("\\textbf{{{}}}".format)
@@ -160,6 +201,7 @@ def main(config, results_table, output_path, renaming):
         data = data.dropna()
 
         make_final_table(data, outdir=output_path / str(i))
+        plot_masking_vs_score(data, outdir=output_path / str(i))
 
 
 if __name__ == "__main__":
