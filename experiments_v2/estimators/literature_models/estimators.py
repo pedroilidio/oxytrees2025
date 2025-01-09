@@ -164,8 +164,8 @@ mlp = MultipartiteGridSearchCV(
 logistic = GlobalSingleOutputWrapper(LogisticRegression())
 
 wknnir = MultipartiteGridSearchCV(
-    WkNNIR(k=7, kr=7, T=0.8)
-    param_grid={"k": [1, 2, 3, 5, 7, 9], "kr": [1], "T": np.arange(0.1, 1.1, 0.1)},
+    WkNNIR(k=7, kr=7, T=0.8),
+    param_grid={"k": [1, 2, 3, 5, 7, 9], "kr": [1, 7], "T": np.arange(0.1, 1.1, 0.1)},
     cv=kfold,
     n_jobs=N_JOBS,
     scoring="average_precision",
