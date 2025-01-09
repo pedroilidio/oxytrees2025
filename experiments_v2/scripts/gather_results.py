@@ -45,6 +45,7 @@ def main(tracking_uri, output_path):
         .drop_duplicates(index_cols, keep="last")
         .set_index(index_cols)
         .filter(like="metrics.", axis="columns")
+        .reset_index()
     )
     data.columns = data.columns.str.split(".", n=1).str[1]
     data = data.rename({"fold_index": "fold"}, axis="columns")  # Hack
