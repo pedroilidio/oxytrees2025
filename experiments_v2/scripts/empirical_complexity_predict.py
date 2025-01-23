@@ -25,9 +25,11 @@ EXPERIMENT_DESCRIPTION = "Empirical complexity of predict function of bipartite 
 START_SIZE = 100
 END_SIZE = 10_000
 N_POINTS = 1000
-MAX_MEMORY = 32e9  # 32 GB
+# MAX_MEMORY = 200e9  # 200 GB
+MAX_MEMORY = 71.6e9  # 71.6 GB (After that it starts swapping)
 RANDOM_STATE = 0
 LOCK = mp.Lock()
+# BARRIER = mp.Barrier(2)
 
 ESTIMATOR = BipartiteExtraTreeRegressor(
     criterion="squared_error_gso",
@@ -192,37 +194,36 @@ def execute_run(
             )
 
         else:
+            start = process_time_ns()
+            molten_X = np.asfortranarray(row_cartesian_product(X))
+            melting_time = process_time_ns() - start
+
+            client.log_metric(
+                run_id, "melting_time", melting_time, step=iteration
+            )
+            client.log_metric(
+                run_id, "log_melting_time", np.log(melting_time), step=iteration
+            )
+
             LOCK.acquire()
             try:
                 start = process_time_ns()
-                molten_X = np.asfortranarray(row_cartesian_product(X))
-                melting_time = process_time_ns() - start
-
-                client.log_metric(
-                    run_id, "melting_time", melting_time, step=iteration
-                )
-                client.log_metric(
-                    run_id, "log_melting_time", np.log(melting_time), step=iteration
-                )
-
-                start = process_time_ns()
                 tree.apply(molten_X)
                 predict_time_single = process_time_ns() - start
-
                 del molten_X
                 gc.collect()
-
-                client.log_metric(
-                    run_id, "predict_time_single", predict_time_single, step=iteration
-                )
-                client.log_metric(
-                    run_id,
-                    "log_predict_time_single",
-                    np.log(predict_time_single),
-                    step=iteration,
-                )
             finally:
                 LOCK.release()
+
+            client.log_metric(
+                run_id, "predict_time_single", predict_time_single, step=iteration
+            )
+            client.log_metric(
+                run_id,
+                "log_predict_time_single",
+                np.log(predict_time_single),
+                step=iteration,
+            )
 
         client.set_terminated(run_id)
 
