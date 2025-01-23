@@ -18,8 +18,19 @@ CACHE_DIR = Path(__file__).parent.resolve() / "cache"
 # memory = joblib.Memory(location=CACHE_DIR, verbose=0)
 memory = str(CACHE_DIR)
 
-nrlmf__bxt_bgso = make_multipartite_pipeline(nrlmf_sampler, bxt_bgso)
-nrlmf__bxt_gmo = make_multipartite_pipeline(nrlmf_sampler, bxt_gmo)
+# "sqrt" as used by the original code source:
+#
+# Pliakos K, Vens C. Drug-target interaction prediction with tree-ensemble learning
+# and output space reconstruction. BMC Bioinformatics. 2020;21:1–11. 
+
+nrlmf__bxt_gmo = make_multipartite_pipeline(
+    nrlmf_sampler,
+    clone(bxt_gmo).set_params(max_row_features="sqrt", max_col_features="sqrt"),
+)
+nrlmf__bxt_bgso = make_multipartite_pipeline(
+    nrlmf_sampler,
+    clone(bxt_bgso).set_params(max_row_features="sqrt", max_col_features="sqrt"),
+)
 
 nrlmf__dwnn_similarities__bxt_bgso = make_multipartite_pipeline(
     nrlmf_sampler,
@@ -28,7 +39,7 @@ nrlmf__dwnn_similarities__bxt_bgso = make_multipartite_pipeline(
 )
 nrlmf__dwnn_square__bxt_bgso = make_multipartite_pipeline(
     nrlmf_sampler,
-    FunctionTransformer(np.square),  
+    FunctionTransformer(np.square),
     clone(dwnn_similarities_bxt_bgso),
     memory=memory,
 )
@@ -44,4 +55,3 @@ nrlmf__uniform__bxt_bgso = make_multipartite_pipeline(
     clone(uniform_bxt_bgso),
     memory=memory,
 )
-

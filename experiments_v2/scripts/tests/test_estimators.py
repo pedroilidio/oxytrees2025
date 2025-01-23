@@ -92,12 +92,10 @@ def check_estimators(
                 print(f"* [X] {estimator_name}: {e}")
             except mp.TimeoutError as e:
                 count_timedout += 1
-                print(f"* [X] {estimator_name}: {e}")
+                print(f"* [X] {estimator_name}:  Timed out.")
             else:
                 print(f"[OK!] {estimator_name}")
         
-    pool.join()
-
     print(
         f"\nChecks finished. {count_failed} estimators failed."
         f" {count_timedout} timed out."

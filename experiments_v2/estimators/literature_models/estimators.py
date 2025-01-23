@@ -7,13 +7,9 @@ from sklearn.multioutput import MultiOutputRegressor
 from sklearn.svm import SVR
 from sklearn.neural_network import MLPRegressor
 from imblearn.under_sampling import RandomUnderSampler
-# from imblearn.pipeline import make_pipeline
 from bipartite_learn.pipeline import make_multipartite_pipeline
 from bipartite_learn.preprocessing.multipartite import DTHybridSampler
-# from bipartite_learn.preprocessing.monopartite import (
-#     TargetKernelLinearCombiner,
-#     TargetKernelDiffuser,
-# )
+from bipartite_learn.preprocessing.monopartite import TargetKernelLinearCombiner
 from bipartite_learn.neighbors import WeightedNeighborsRegressor
 from bipartite_learn.wrappers import LocalMultiOutputWrapper, GlobalSingleOutputWrapper
 from bipartite_learn.model_selection import (
@@ -23,9 +19,6 @@ from bipartite_learn.model_selection import (
 
 from .kron_rls import KronRLSRegressor
 from .wknnir import WkNNIR
-
-RSTATE = 0
-N_JOBS = 1
 
 # Controls the balance between the similarity kernel and network-based kernel.
 ALPHA_OPTIONS = [
@@ -37,16 +30,21 @@ ALPHA_OPTIONS = [
     0.9,
     1.0,
 ]
-
-kfold = make_multipartite_kfold(
-    n_parts=2,  # Bipartite
-    cv=2,
-    shuffle=True,
-    diagonal=False,
-    random_state=RSTATE,
+GRID_SEARCH_PARAMS = dict(
+    cv=make_multipartite_kfold(
+        n_parts=2,  # Bipartite
+        cv=2,
+        shuffle=True,
+        diagonal=False,
+        random_state=0,
+    ),
+    n_jobs=1,
+    scoring="average_precision",
+    pairwise=True,
+    verbose=2,
 )
 
-blmnii_rls = LocalMultiOutputWrapper(
+blmnii_rls_core = LocalMultiOutputWrapper(
     primary_rows_estimator=WeightedNeighborsRegressor(
         metric="precomputed",
         weights="similarity",
@@ -60,47 +58,23 @@ blmnii_rls = LocalMultiOutputWrapper(
     independent_labels=False,
 )
 
-# Below is the version using network kernel as the original paper. Since the network
-# kernel is only used during fitting, the primary estimators would receive very
-# different similarity metrics at prediction time, and thus we choose not to use it.
-
-# blmnii_rls = MultipartiteGridSearchCV(
-#     LocalMultiOutputWrapper(
-#         primary_rows_estimator=make_pipeline(
-#             TargetKernelLinearCombiner(),
-#             WeightedNeighborsRegressor(
-#                 metric="precomputed",
-#                 weights="similarity",
-#             ),
-#         ),
-#         primary_cols_estimator=make_pipeline(
-#             TargetKernelLinearCombiner(),
-#             WeightedNeighborsRegressor(
-#                 metric="precomputed",
-#                 weights="similarity",
-#             ),
-#         ),
-#         secondary_rows_estimator=KernelRidge(kernel="precomputed"),
-#         secondary_cols_estimator=KernelRidge(kernel="precomputed"),
-#         independent_labels=False,
-#     ),
-#     param_grid=[
-#         {
-#             "primary_rows_estimator__targetkernellinearcombiner__alpha": alpha,
-#             "primary_cols_estimator__targetkernellinearcombiner__alpha": alpha,
-#         }
-#         for alpha in ALPHA_OPTIONS
-#     ],
-#     cv=kfold,
-#     n_jobs=N_JOBS,
-#     scoring="average_precision",
-#     pairwise=True,
-# )
+blmnii_rls = MultipartiteGridSearchCV(
+    make_multipartite_pipeline(
+        TargetKernelLinearCombiner(),
+        blmnii_rls_core,
+    ),
+    param_grid={"targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS},
+    **GRID_SEARCH_PARAMS,
+)
 
 blmnii_svm = clone(blmnii_rls).set_params(
-    secondary_rows_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
-    secondary_cols_estimator=MultiOutputRegressor(SVR(kernel="precomputed")),
-    independent_labels=True,
+    estimator__localmultioutputwrapper__secondary_rows_estimator=MultiOutputRegressor(
+        SVR(kernel="precomputed")
+    ),
+    estimator__localmultioutputwrapper__secondary_cols_estimator=MultiOutputRegressor(
+        SVR(kernel="precomputed")
+    ),
+    estimator__localmultioutputwrapper__independent_labels=True,
 )
 
 dthybrid_regressor = make_multipartite_pipeline(
@@ -127,9 +101,7 @@ dthybrid_regressor = make_multipartite_pipeline(
 )
 
 # RLS-avg [Van Laarhoven, 2011]
-# Only the similarity kernel is used, not the network kernel. See the explanation above
-# for blmnii_rls.
-lmo_rls = LocalMultiOutputWrapper(
+lmo_rls_core = LocalMultiOutputWrapper(
     primary_rows_estimator=KernelRidge(kernel="precomputed"),
     primary_cols_estimator=KernelRidge(kernel="precomputed"),
     secondary_rows_estimator=KernelRidge(kernel="precomputed"),
@@ -137,10 +109,24 @@ lmo_rls = LocalMultiOutputWrapper(
     independent_labels=False,
 )
 
+lmo_rls = MultipartiteGridSearchCV(
+    make_multipartite_pipeline(
+        TargetKernelLinearCombiner(),
+        lmo_rls_core,
+    ),
+    param_grid={"targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS},
+    **GRID_SEARCH_PARAMS,
+)
+
 # RLS-Kron [Van Laarhoven, 2011]
-# Only the similarity kernel is used, not the network kernel. See the explanation above
-# for blmnii_rls.
-kron_rls = KronRLSRegressor()
+kron_rls = MultipartiteGridSearchCV(
+    make_multipartite_pipeline(
+        TargetKernelLinearCombiner(),
+        KronRLSRegressor(),
+    ),
+    param_grid={"targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS},
+    **GRID_SEARCH_PARAMS,
+)
 
 mlp = MultipartiteGridSearchCV(
     GlobalSingleOutputWrapper(
@@ -155,10 +141,7 @@ mlp = MultipartiteGridSearchCV(
             (1024, 512, 256, 128, 64, 32),
         ],
     },
-    cv=kfold,
-    n_jobs=N_JOBS,
-    scoring="average_precision",
-    pairwise=True,
+    **GRID_SEARCH_PARAMS,
 )
 
 logistic = GlobalSingleOutputWrapper(LogisticRegression())
@@ -166,8 +149,5 @@ logistic = GlobalSingleOutputWrapper(LogisticRegression())
 wknnir = MultipartiteGridSearchCV(
     WkNNIR(k=7, kr=7, T=0.8),
     param_grid={"k": [1, 2, 3, 5, 7, 9], "kr": [1, 7], "T": np.arange(0.1, 1.1, 0.1)},
-    cv=kfold,
-    n_jobs=N_JOBS,
-    scoring="average_precision",
-    pairwise=True,
+    **GRID_SEARCH_PARAMS,
 )
