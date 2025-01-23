@@ -8,7 +8,7 @@ BASEDIR = Path(__file__).resolve().parents[1]
 
 
 @click.command()
-@click.option("--tracking-uri", default="mlruns")
+@click.option("--tracking-uri", default="sqlite:///mlruns.db")
 @click.option(
     "--output-path",
     "--out",
