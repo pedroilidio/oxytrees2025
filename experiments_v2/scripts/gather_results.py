@@ -39,16 +39,25 @@ def main(tracking_uri, output_path):
         search_all_experiments=True,
         max_results=50_000,  # Max allowed by MLflow
     )
+    assert data.iloc[0].start_time < data.iloc[1].start_time
+    assert data.iloc[-10].start_time < data.iloc[-1].start_time
 
     data = (
         data.dropna(subset=index_cols)
         .drop_duplicates(index_cols, keep="last")
-        .set_index(index_cols)
+        .set_index(index_cols + ["start_time"])  # Keep time for merging databases later
         .filter(like="metrics.", axis="columns")
         .reset_index()
+        .rename(
+            columns={
+                "tags.fold_index": "fold",
+                "tags.dataset": "dataset",
+                "tags.validation_setting": "validation_setting",
+                "tags.estimator": "estimator",
+            },
+        )
+        .rename(columns=lambda x: x.replace("metrics.", ""))
     )
-    data.columns = data.columns.str.split(".", n=1).str[1]
-    data = data.rename({"fold_index": "fold"}, axis="columns")  # Hack
 
     print("Saving results...")
     output_path.parent.mkdir(parents=True, exist_ok=True)
