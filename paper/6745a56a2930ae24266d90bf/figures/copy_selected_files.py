@@ -4,16 +4,23 @@ import shutil
 
 IN = Path("../../../experiments_v2/results").resolve()
 OUT = Path("./results").resolve()
-GLOB_PATTERN = "*/*/all_datasets/boxplots/*.pdf"
+GLOB_PATTERNS = (
+    "*/*/all_datasets/critical_difference_diagrams/*.pdf",
+    "latex_tables/0/*.tex",
+    "latex_tables/0/*.pdf",
+    "empirical_complexity/*.pdf",
+    "*/*/parallel_coordinates/*.pdf",
+)
 
 
 def main():
-    for source in IN.rglob(GLOB_PATTERN):
-        dest = OUT / source.relative_to(IN)
-        dest.parent.mkdir(exist_ok=True, parents=True)
+    for glob_pattern in GLOB_PATTERNS:
+        for source in IN.rglob(glob_pattern):
+            dest = OUT / source.relative_to(IN)
+            dest.parent.mkdir(exist_ok=True, parents=True)
 
-        print(f"Copying {source}")
-        shutil.copy(source, dest)
+            print(f"Copying {source}")
+            shutil.copy(source, dest)
 
     print("Done.")
 
