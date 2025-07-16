@@ -9,14 +9,10 @@ from sklearn.utils._param_validation import HasMethods, Interval
 from sklearn.exceptions import NotFittedError
 from sklearn.ensemble._forest import ForestRegressor
 
+from .metaestimator_utils import AttributeWrapperMixin
 
-class ModelTree(MetaEstimatorMixin, BaseEstimator):
-    _estimator_params = (
-        "n_outputs_",
-        "n_features_in_",
-        "tree_",
-        "_validate_X_predict",
-    )
+
+class ModelTree(AttributeWrapperMixin, MetaEstimatorMixin, BaseEstimator):
     _parameter_constraints = {
         "estimator": [HasMethods(["apply", "fit"])],
         "leaf_estimator": [HasMethods(["fit", "predict"])],
@@ -102,22 +98,8 @@ class ModelTree(MetaEstimatorMixin, BaseEstimator):
     def __sklearn_is_fitted__(self):
         return hasattr(self, "estimator_")
 
-    def __getattribute__(self, name):
-        if name != "_estimator_params" and name in self._estimator_params:
-            return getattr(self.estimator_, name)
-        return super().__getattribute__(name)
 
-
-class ModelForestRegressor(ForestRegressor, MetaEstimatorMixin):
-    _estimator_params = (
-        "_validate_data",
-        "n_outputs_",
-        "n_features_in_",
-        "n_jobs",
-        "n_estimators",
-        "verbose",
-        "criterion",
-    )
+class ModelForestRegressor(AttributeWrapperMixin, ForestRegressor, MetaEstimatorMixin):
     _model_tree_class = ModelTree
 
     def __init__(self, estimator, leaf_estimator, pairwise=False, min_impurity=0.0):
@@ -139,28 +121,22 @@ class ModelForestRegressor(ForestRegressor, MetaEstimatorMixin):
             )
             self.estimators_.append(model_tree.fit(X, y))
         return self
-    
+
     def predict(self, X):
+        check_is_fitted(self)
+
         def _predict_tree(tree):
             return tree.predict(X)
 
         predictions = joblib.Parallel(
-            n_jobs=self.n_jobs,
+            n_jobs=self.estimator_.n_jobs,
             # return_as="generator_unordered",  # Not supported by multiprocessing
             backend="multiprocessing",  # Threads will not work with ModelTree
-            verbose=self.verbose,
-        )(
-            joblib.delayed(_predict_tree)(tree)
-            for tree in self.estimators_
-        )
+            verbose=self.estimator_.verbose,
+        )(joblib.delayed(_predict_tree)(tree) for tree in self.estimators_)
 
         summed_predictions = sum(predictions)
-        return summed_predictions / self.n_estimators
+        return summed_predictions / self.estimator_.n_estimators
 
     def __sklearn_is_fitted__(self):
         return hasattr(self, "estimators_")
-
-    def __getattribute__(self, name):
-        if name != "_estimator_params" and name in self._estimator_params:
-            return getattr(self.estimator_, name)
-        return super().__getattribute__(name)

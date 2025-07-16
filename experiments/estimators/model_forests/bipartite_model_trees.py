@@ -8,16 +8,11 @@ from sklearn.utils._param_validation import HasMethods, Interval
 from sklearn.exceptions import NotFittedError
 from bipartite_learn.ensemble._forest import BaseMultipartiteForest
 
+from .metaestimator_utils import AttributeWrapperMixin
 from .model_trees import ModelForestRegressor
 
 
-class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
-    _estimator_params = (
-        "n_outputs_",
-        "n_features_in_",
-        "tree_",
-        "_validate_X_predict",
-    )
+class BipartiteModelTree(AttributeWrapperMixin, MetaEstimatorMixin, BaseEstimator):
     _parameter_constraints = {
         "estimator": [HasMethods(["apply", "fit"])],
         "leaf_estimator": [HasMethods(["fit", "predict"])],
@@ -117,11 +112,6 @@ class BipartiteModelTree(MetaEstimatorMixin, BaseEstimator):
 
     def __sklearn_is_fitted__(self):
         return hasattr(self, "estimator_")
-
-    def __getattribute__(self, name):
-        if name != "_estimator_params" and name in self._estimator_params:
-            return getattr(self.estimator_, name)
-        return super().__getattribute__(name)
 
 
 class BipartiteModelForestRegressor(ModelForestRegressor, BaseMultipartiteForest):
