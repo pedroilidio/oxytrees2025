@@ -247,6 +247,7 @@ class RunExecutor:
     metric_function_loaders: list[PythonFunctionLoader]
     dataset_loader: DatasetLoader
     fold: Fold
+    skip_finished: bool = True
     name_tag_order = ("estimator", "dataset", "fold_name")
 
     def __post_init__(self):
@@ -285,6 +286,20 @@ class RunExecutor:
             raise RunException(original_exception=e, run_executor=self) from e
 
     def _execute(self):
+        if self.skip_finished:
+            print(f"Checking if run {self.name} was already executed...")
+            finished_runs = self.client.search_runs(
+                filter_string=(
+                    # f"run_name = '{self.name}' AND status = 'FINISHED'"
+                    f"run_name = '{self.name}' AND status != 'FAILED'"
+                ),
+                experiment_ids=[self.experiment_id],
+                max_results=1,
+            )
+            if finished_runs:
+                warn(f"Skipping already finished run: {self.name}")
+                return
+
         self.mlflow_run = self.client.create_run(
             experiment_id=self.experiment_id,
             run_name=self.name,
@@ -542,9 +557,16 @@ def main(
             description=experiment_data["description"],
         )
         if skip_finished:
+            # We will check before running as well, since multiple machines may run at
+            # the same time and finish new runs in the meantime. This first bulk check
+            # is to already rule out all previous runs, it's much faster than checking
+            # in each run.
+            # NOTE: Make sure to clean up the status = 'RUNNING' runs before running
+            # this script.
             print("Collecting finished runs...")
             finished_runs = client.search_runs(
-                filter_string="status = 'FINISHED'",
+                # filter_string="status = 'FINISHED'",
+                filter_string="status != 'FAILED'",
                 experiment_ids=[e.experiment_id for e in client.search_experiments()],
                 max_results=50_000,  # Maximum allowed by MLflow
             )
@@ -604,6 +626,7 @@ def main(
                     metric_function_loaders=metric_function_loaders,
                     dataset_loader=dataset_loader,
                     fold=fold,
+                    skip_finished=skip_finished,
                 )
                 if skip_finished and run_executor.name in finished_runs:
                     warnings.warn(f"Skipping finished run: {run_executor.name}")
