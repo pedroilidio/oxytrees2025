@@ -1,3 +1,4 @@
+import re
 import functools
 from dataclasses import dataclass, field, replace
 import traceback
@@ -352,7 +353,10 @@ class RunExecutor:
 
 def uri_to_path(uri: str) -> Path:
     """Convert a URI to a Path object."""
+    if not re.match(r"^\w+?://", uri):
+        return Path(uri).resolve()
     if uri.startswith("file://"):
+        # TODO: Python 3.13 has Path.from_uri()
         return Path(uri.removeprefix("file://")).resolve()
     raise ValueError(f"Unsupported URI format: {uri}")
 
@@ -369,12 +373,11 @@ def get_experiment_id_from_name(*, client, experiment_name, description):
     print(f"Found existing experiment: {vars(experiment)}")
 
     if experiment.lifecycle_stage == "active":
-        if not experiment.artifact_location.startswith("file://"):
+        try:
+            path_artifacts = uri_to_path(experiment.artifact_location)
+        except ValueError:
             print("Remote artifact location. Using existing experiment.")
             return experiment.experiment_id
-
-        # TODO: Python 3.13 has Path.from_uri()
-        path_artifacts = uri_to_path(experiment.artifact_location)
 
         if os.access(path_artifacts, os.W_OK):
             print("Using existing experiment.")
