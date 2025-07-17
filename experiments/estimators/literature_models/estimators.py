@@ -1,7 +1,6 @@
 from types import MappingProxyType
 
 import numpy as np
-from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.multioutput import MultiOutputRegressor
@@ -76,7 +75,7 @@ def blmnii_rls():
 
 
 def blmnii_svm():
-    return clone(blmnii_rls()).set_params(
+    return blmnii_rls().set_params(
         estimator__localmultioutputwrapper__secondary_rows_estimator=MultiOutputRegressor(
             SVR(kernel="precomputed")
         ),
@@ -111,7 +110,7 @@ def dthybrid_regressor():
         ),
     )
 
-# RLS-avg [Van Laarhoven, 2011]
+
 def lmo_rls_core():
     return LocalMultiOutputWrapper(
         primary_rows_estimator=KernelRidge(kernel="precomputed"),
@@ -121,46 +120,60 @@ def lmo_rls_core():
         independent_labels=False,
     )
 
+
 def lmo_rls():
+    """RLS-avg [Van Laarhoven, 2011]"""
     return MultipartiteGridSearchCV(
         make_multipartite_pipeline(
             TargetKernelLinearCombiner(),
             lmo_rls_core(),
         ),
-        param_grid={"targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS},
+        param_grid={"targetkernellinearcombiner__samplers__alpha": list(ALPHA_OPTIONS)},
         **GRID_SEARCH_PARAMS,
     )
 
-# RLS-Kron [Van Laarhoven, 2011]
-kron_rls = MultipartiteGridSearchCV(
-    make_multipartite_pipeline(
-        TargetKernelLinearCombiner(),
-        KronRLSRegressor(),
-    ),
-    param_grid={"targetkernellinearcombiner__samplers__alpha": ALPHA_OPTIONS},
-    **GRID_SEARCH_PARAMS,
-)
 
-mlp = MultipartiteGridSearchCV(
-    GlobalSingleOutputWrapper(
-        estimator=MLPRegressor(),
-        under_sampler=RandomUnderSampler(),
-    ),
-    param_grid={
-        "estimator__hidden_layer_sizes": [
-            (100,) * 5,
-            (100,) * 10,
-            (200, 100, 100, 100, 50),
-            (1024, 512, 256, 128, 64, 32),
-        ],
-    },
-    **GRID_SEARCH_PARAMS,
-)
+def kron_rls():
+    """RLS-Kron [Van Laarhoven, 2011]"""
+    return MultipartiteGridSearchCV(
+        make_multipartite_pipeline(
+            TargetKernelLinearCombiner(),
+            KronRLSRegressor(),
+        ),
+        param_grid={"targetkernellinearcombiner__samplers__alpha": list(ALPHA_OPTIONS)},
+        **GRID_SEARCH_PARAMS,
+    )
 
-logistic = GlobalSingleOutputWrapper(LogisticRegression())
 
-wknnir = MultipartiteGridSearchCV(
-    WkNNIR(k=7, kr=7, T=0.8),
-    param_grid={"k": [1, 2, 3, 5, 7, 9], "kr": [1, 7], "T": np.arange(0.1, 1.1, 0.1)},
-    **GRID_SEARCH_PARAMS,
-)
+def mlp():
+    return MultipartiteGridSearchCV(
+        GlobalSingleOutputWrapper(
+            estimator=MLPRegressor(),
+            under_sampler=RandomUnderSampler(),
+        ),
+        param_grid={
+            "estimator__hidden_layer_sizes": [
+                (100,) * 5,
+                (100,) * 10,
+                (200, 100, 100, 100, 50),
+                (1024, 512, 256, 128, 64, 32),
+            ],
+        },
+        **GRID_SEARCH_PARAMS,
+    )
+
+
+def logistic():
+    return GlobalSingleOutputWrapper(LogisticRegression())
+
+
+def wknnir():
+    return MultipartiteGridSearchCV(
+        WkNNIR(k=7, kr=7, T=0.8),
+        param_grid={
+            "k": [1, 2, 3, 5, 7, 9],
+            "kr": [1, 7],
+            "T": np.arange(0.1, 1.1, 0.1),
+        },
+        **GRID_SEARCH_PARAMS,
+    )

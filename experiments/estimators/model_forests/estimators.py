@@ -67,11 +67,11 @@ def dwnn_square():
     )
 
 
-def uniform_bxt_bgso(**kwargs):
-    return BipartiteExtraTreesRegressor(**DEFAULT_FOREST_PARAMS).set_params(**kwargs)
+def uniform_bxt_bgso():
+    return BipartiteExtraTreesRegressor(**DEFAULT_FOREST_PARAMS)
 
 
-def dwnn_max_bxt_bgso(**kwargs):
+def dwnn_max_bxt_bgso():
     return BipartiteModelForestRegressor(
         estimator=uniform_bxt_bgso(),
         leaf_estimator=KroneckerWeightedNeighbors(
@@ -79,10 +79,10 @@ def dwnn_max_bxt_bgso(**kwargs):
             weights=max_similarity,
         ),
         pairwise=True,
-    ).set_params(**kwargs)
+    )
 
 
-def dwnn_conditional_uniform_bxt_bgso(**kwargs):
+def dwnn_conditional_uniform_bxt_bgso():
     return BipartiteModelForestRegressor(
         estimator=uniform_bxt_bgso(),
         leaf_estimator=KroneckerWeightedNeighbors(
@@ -90,48 +90,48 @@ def dwnn_conditional_uniform_bxt_bgso(**kwargs):
             weights=conditional_uniform,
         ),
         pairwise=True,
-    ).set_params(**kwargs)
+    )
 
 
-def dwnn_similarities_bxt_bgso(**kwargs):
+def dwnn_similarities_bxt_bgso():
     return BipartiteModelForestRegressor(
         estimator=uniform_bxt_bgso(),
         leaf_estimator=KroneckerWeightedNeighbors(
             metric="precomputed", weights="similarity"
         ),
         pairwise=True,
-    ).set_params(**kwargs)
+    )
 
 
-def dwnn_square_bxt_bgso(**kwargs):
+def dwnn_square_bxt_bgso():
     return make_multipartite_pipeline(
         # NOTE: One could also apply the function as the `weights` parameter in the
         # leaf_estimator, but since trees are invariant to monotonic transformations,
         # it is more efficient to apply the transformation here.
         FunctionTransformer(np.square),
         dwnn_similarities_bxt_bgso(),
-    ).set_params(**kwargs)
+    )
 
 
-def dwnn_softmax_bxt_bgso(**kwargs):
+def dwnn_softmax_bxt_bgso():
     return make_multipartite_pipeline(
         # NOTE: See previous note.
         FunctionTransformer(np.exp),
         dwnn_similarities_bxt_bgso(),
-    ).set_params(**kwargs)
+    )
 
 
-def bxt_bgso_kronrls(**kwargs):
+def bxt_bgso_kronrls():
     return BipartiteModelForestRegressor(
         estimator=uniform_bxt_bgso(),
         leaf_estimator=KronRLSRegressor(),
         pairwise=True,
-    ).set_params(**kwargs)
+    )
 
 
-def bxt_bgso_logistic(**kwargs):
+def bxt_bgso_logistic():
     return BipartiteModelForestRegressor(
         estimator=uniform_bxt_bgso(),
         leaf_estimator=GlobalSingleOutputWrapper(ProbaRegressor(LogisticRegression())),
         pairwise=True,
-    ).set_params(**kwargs)
+    )

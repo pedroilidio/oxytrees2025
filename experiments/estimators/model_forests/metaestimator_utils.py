@@ -7,15 +7,17 @@ class AttributeWrapperMixin:
 
     _meta_attributes = ("estimator_", "estimator")
 
+    # Only called if name is not found in the instance
     def __getattr__(self, name):
+        if name in self._meta_attributes:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
         try:
-            return super().__getattr__(name)
+            for meta_attr in self._meta_attributes:
+                return getattr(getattr(self, meta_attr), name)
         except AttributeError:
-            try:
-                for meta_attr in self._meta_attributes:
-                    return getattr(getattr(self, meta_attr), name)
-            except AttributeError:
-                pass
+            pass
 
         type_dict = {
             attr: (
