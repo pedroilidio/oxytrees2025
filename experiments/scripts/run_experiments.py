@@ -352,8 +352,7 @@ class RunExecutor:
 
 def get_experiment_id_from_name(*, client, experiment_name, description):
     experiment = client.get_experiment_by_name(experiment_name)
-
-    if experiment is None:
+    if experiment is None or experiment.lifecycle_stage == "deleted":
         print(f"Creating experiment: {experiment_name}")
         return client.create_experiment(
             name=experiment_name,
