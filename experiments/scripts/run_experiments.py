@@ -353,7 +353,7 @@ class RunExecutor:
 
 def uri_to_path(uri: str) -> Path:
     """Convert a URI to a Path object."""
-    if not re.match(r"^\w+?:/", uri):
+    if not re.match(r"^[^:^/]+?:/", uri):
         return Path(uri).resolve()
     if uri.startswith("file://"):
         # TODO: Python 3.13 has Path.from_uri()
