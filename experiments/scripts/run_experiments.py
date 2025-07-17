@@ -362,11 +362,22 @@ def get_experiment_id_from_name(*, client, experiment_name, description):
         )
 
     print(f"Found existing experiment: {vars(experiment)}")
-    if os.access(experiment.artifact_location, os.W_OK):
-        print(f"Using existing experiment: {vars(experiment)}")
+    if not experiment.artifact_location.has_prefix("file://"):
+        print("Using existing experiment.")
         return experiment.experiment_id
 
-    print(f"Artifact_location is not writable: {experiment.artifact_location}")
+    # TODO: Python 3.13 has Path.from_uri()
+    path_artifacts = Path(
+        experiment.artifact_location.strip("/").removeprefix("file://")
+    )
+    if os.access(path_artifacts, os.W_OK):
+        print("Using existing experiment.")
+        return experiment.experiment_id
+
+    print(
+        f"Artifact_location is not writable: {experiment.artifact_location}"
+        f" (Path: {path_artifacts})"
+    )
 
     # HACK
     sep = "__v"
@@ -388,7 +399,6 @@ def get_experiment_id_from_name(*, client, experiment_name, description):
         experiment_name=new_name,
         description=description,
     )
-
 
 
 def log_sklearn_model(client, run_id, estimator, code_path):
