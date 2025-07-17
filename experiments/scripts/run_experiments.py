@@ -353,14 +353,20 @@ class RunExecutor:
 def get_experiment_id_from_name(*, client, experiment_name, description):
     experiment = client.get_experiment_by_name(experiment_name)
 
-    if experiment is None:
-        return client.create_experiment(
-            name=experiment_name,
-            # artifact_location=artifact_location,
-            tags={"mlflow.note.content": description},
-        )
+    if experiment is not None:
+        print(f"Found existing experiment: {vars(experiment)}")
+        if os.access(experiment.artifact_location, os.W_OK):
+            print(f"Using existing experiment: {vars(experiment)}")
+            return experiment.experiment_id
+        else:
+            print(f"Artifact_location is not writable: {experiment.artifact_location}")
 
-    return experiment.experiment_id
+    print(f"Creating experiment: {experiment_name}")
+    return client.create_experiment(
+        name=experiment_name,
+        # artifact_location=artifact_location,
+        tags={"mlflow.note.content": description},
+    )
 
 
 def log_sklearn_model(client, run_id, estimator, code_path):
@@ -556,6 +562,9 @@ def main(
             # artifact_location=artifact_location,  # TODO
             description=experiment_data["description"],
         )
+        print(experiment_id)
+        exit()  # XXX
+
         if skip_finished:
             # We will check before running as well, since multiple machines may run at
             # the same time and finish new runs in the meantime. This first bulk check
@@ -567,6 +576,8 @@ def main(
             finished_runs = client.search_runs(
                 # filter_string="status = 'FINISHED'",
                 filter_string="status != 'FAILED'",
+                # Search all experiments. Sometimes we create a different experiment
+                # to be able to change the artifact location.
                 experiment_ids=[e.experiment_id for e in client.search_experiments()],
                 max_results=50_000,  # Maximum allowed by MLflow
             )
