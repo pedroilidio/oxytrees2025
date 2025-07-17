@@ -350,26 +350,32 @@ class RunExecutor:
     __call__ = execute
 
 
+def uri_to_path(uri: str) -> Path:
+    """Convert a URI to a Path object."""
+    if uri.startswith("file://"):
+        return Path(uri.removeprefix("file://")).resolve()
+    raise ValueError(f"Unsupported URI format: {uri}")
+
+
 def get_experiment_id_from_name(*, client, experiment_name, description):
     experiment = client.get_experiment_by_name(experiment_name)
     if experiment is None:
         print(f"Creating experiment: {experiment_name}")
         return client.create_experiment(
             name=experiment_name,
-            # artifact_location=artifact_location,
+            # artifact_location=None,  # TODO: Specify artifact location
             tags={"mlflow.note.content": description},
         )
     print(f"Found existing experiment: {vars(experiment)}")
 
     if experiment.lifecycle_stage == "active":
         if not experiment.artifact_location.startswith("file://"):
-            print("Using existing experiment.")
+            print("Remote artifact location. Using existing experiment.")
             return experiment.experiment_id
 
         # TODO: Python 3.13 has Path.from_uri()
-        path_artifacts = Path(
-            experiment.artifact_location.strip("/").removeprefix("file://")
-        )
+        path_artifacts = uri_to_path(experiment.artifact_location)
+
         if os.access(path_artifacts, os.W_OK):
             print("Using existing experiment.")
             return experiment.experiment_id
@@ -594,6 +600,11 @@ def main(
             # artifact_location=artifact_location,  # TODO
             description=experiment_data["description"],
         )
+        experiment = client.get_experiment(experiment_id)
+        if not os.access(uri_to_path(experiment.artifact_location), os.W_OK):
+            raise RuntimeError(
+                f"Artifact location is not writable: {experiment.artifact_location}"
+            )
 
         if skip_finished:
             # We will check before running as well, since multiple machines may run at
