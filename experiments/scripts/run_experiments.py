@@ -22,8 +22,6 @@ from mlflow.models.signature import ModelSignature
 from tqdm import tqdm
 
 
-# TODO: dependency injection for folds, dataset splits, etc.
-
 # TODO: include number of features (the one bellow is used only for unfit models)
 BIPARTITE_SIGNATURE = ModelSignature(
     inputs=Schema([TensorSpec(type=np.dtype("float32"), shape=(2, -1, -1))]),
@@ -477,8 +475,6 @@ def apply_estimator(
 def run_error_callback(exception: Exception):
     try:
         raise exception
-    except KeyboardInterrupt:  # Should be unnecessary
-        raise
     except RunException as run_exception:
         client = run_exception.run_executor.client
         run_id = run_exception.run_executor.run_id
@@ -600,7 +596,6 @@ def main(
         experiment_id = get_experiment_id_from_name(
             client=client,
             experiment_name=experiment_name,
-            # artifact_location=artifact_location,  # TODO
             description=experiment_data["description"],
         )
         experiment = client.get_experiment(experiment_id)
@@ -665,7 +660,7 @@ def main(
             experiment_data["validation_setting"], dataset_loaders, estimators_loaders
         ):
             # FIXME: Change the format of fold configuration
-            folds = [
+            folds = (
                 Fold(
                     name=f"{validation_setting}__{fold_index}",
                     test_rows=fold["test_rows"],
@@ -677,7 +672,7 @@ def main(
                         validation_setting, []
                     )
                 )
-            ]
+            )
             for fold in folds:
                 run_executor = RunExecutor(
                     client=client,
