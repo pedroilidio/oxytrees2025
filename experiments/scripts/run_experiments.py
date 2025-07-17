@@ -362,7 +362,7 @@ def get_experiment_id_from_name(*, client, experiment_name, description):
         )
 
     print(f"Found existing experiment: {vars(experiment)}")
-    if not experiment.artifact_location.has_prefix("file://"):
+    if not experiment.artifact_location.startswith("file://"):
         print("Using existing experiment.")
         return experiment.experiment_id
 
