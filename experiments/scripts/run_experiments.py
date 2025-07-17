@@ -604,10 +604,15 @@ def main(
             description=experiment_data["description"],
         )
         experiment = client.get_experiment(experiment_id)
-        if not os.access(uri_to_path(experiment.artifact_location), os.W_OK):
-            raise RuntimeError(
-                f"Artifact location is not writable: {experiment.artifact_location}"
-            )
+        try:
+            path = uri_to_path(experiment.artifact_location)
+        except ValueError:
+            print(f"Remote artifact location: {experiment.artifact_location}")
+        else:
+            if not os.access(path, os.W_OK):
+                raise RuntimeError(
+                    f"Artifact location is not writable: {experiment.artifact_location}"
+                )
 
         if skip_finished:
             # We will check before running as well, since multiple machines may run at
