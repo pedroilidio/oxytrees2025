@@ -385,7 +385,7 @@ def get_experiment_id_from_name(*, client, experiment_name, description):
         # If the experiment name already contains a version number, increment it.
         experiment_name, version = experiment_name.rsplit(sep, maxsplit=1)
         try:
-            version = int(version) + 1
+            version = str(int(version) + 1)
         except ValueError:
             version += sep + "2"
     else:
