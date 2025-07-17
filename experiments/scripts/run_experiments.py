@@ -353,20 +353,42 @@ class RunExecutor:
 def get_experiment_id_from_name(*, client, experiment_name, description):
     experiment = client.get_experiment_by_name(experiment_name)
 
-    if experiment is not None:
-        print(f"Found existing experiment: {vars(experiment)}")
-        if os.access(experiment.artifact_location, os.W_OK):
-            print(f"Using existing experiment: {vars(experiment)}")
-            return experiment.experiment_id
-        else:
-            print(f"Artifact_location is not writable: {experiment.artifact_location}")
+    if experiment is None:
+        print(f"Creating experiment: {experiment_name}")
+        return client.create_experiment(
+            name=experiment_name,
+            # artifact_location=artifact_location,
+            tags={"mlflow.note.content": description},
+        )
 
-    print(f"Creating experiment: {experiment_name}")
-    return client.create_experiment(
-        name=experiment_name,
-        # artifact_location=artifact_location,
-        tags={"mlflow.note.content": description},
+    print(f"Found existing experiment: {vars(experiment)}")
+    if os.access(experiment.artifact_location, os.W_OK):
+        print(f"Using existing experiment: {vars(experiment)}")
+        return experiment.experiment_id
+
+    print(f"Artifact_location is not writable: {experiment.artifact_location}")
+
+    # HACK
+    sep = "__v"
+    if sep in experiment_name:
+        # If the experiment name already contains a version number, increment it.
+        experiment_name, version = experiment_name.rsplit(sep, maxsplit=1)
+        try:
+            version = int(version) + 1
+        except ValueError:
+            version += sep + "2"
+    else:
+        version = "2"
+
+    new_name = experiment_name + sep + version
+
+    print(f"Trying experiment name: {new_name}")
+    return get_experiment_id_from_name(
+        client=client,
+        experiment_name=new_name,
+        description=description,
     )
+
 
 
 def log_sklearn_model(client, run_id, estimator, code_path):
@@ -562,8 +584,6 @@ def main(
             # artifact_location=artifact_location,  # TODO
             description=experiment_data["description"],
         )
-        print(experiment_id)
-        exit()  # XXX
 
         if skip_finished:
             # We will check before running as well, since multiple machines may run at
