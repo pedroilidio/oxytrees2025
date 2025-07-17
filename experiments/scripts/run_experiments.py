@@ -352,31 +352,32 @@ class RunExecutor:
 
 def get_experiment_id_from_name(*, client, experiment_name, description):
     experiment = client.get_experiment_by_name(experiment_name)
-    if experiment is None or experiment.lifecycle_stage == "deleted":
+    if experiment is None:
         print(f"Creating experiment: {experiment_name}")
         return client.create_experiment(
             name=experiment_name,
             # artifact_location=artifact_location,
             tags={"mlflow.note.content": description},
         )
-
     print(f"Found existing experiment: {vars(experiment)}")
-    if not experiment.artifact_location.startswith("file://"):
-        print("Using existing experiment.")
-        return experiment.experiment_id
 
-    # TODO: Python 3.13 has Path.from_uri()
-    path_artifacts = Path(
-        experiment.artifact_location.strip("/").removeprefix("file://")
-    )
-    if os.access(path_artifacts, os.W_OK):
-        print("Using existing experiment.")
-        return experiment.experiment_id
+    if experiment.lifecycle_stage == "active":
+        if not experiment.artifact_location.startswith("file://"):
+            print("Using existing experiment.")
+            return experiment.experiment_id
 
-    print(
-        f"Artifact_location is not writable: {experiment.artifact_location}"
-        f" (Path: {path_artifacts})"
-    )
+        # TODO: Python 3.13 has Path.from_uri()
+        path_artifacts = Path(
+            experiment.artifact_location.strip("/").removeprefix("file://")
+        )
+        if os.access(path_artifacts, os.W_OK):
+            print("Using existing experiment.")
+            return experiment.experiment_id
+
+        print(
+            f"Artifact_location is not writable: {experiment.artifact_location}"
+            f" (Path: {path_artifacts})"
+        )
 
     # HACK
     sep = "__v"
