@@ -24,6 +24,7 @@ def nrlmf__bxt_gmo():
         # "sqrt" as used by the original code source:
         #     Pliakos K, Vens C. Drug-target interaction prediction with tree-ensemble
         #     learning and output space reconstruction. BMC Bioinformatics. 2020;21:1–11.
+        memory=memory,
     )
 
 
@@ -31,6 +32,7 @@ def nrlmf__bxt_bgso():
     return make_multipartite_pipeline(
         nrlmf_sampler(),
         bxt_bgso().set_params(max_row_features="sqrt", max_col_features="sqrt"),
+        memory=memory,
     )
 
 

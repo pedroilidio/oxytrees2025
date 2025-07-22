@@ -102,17 +102,49 @@ class ModelTree(AttributeWrapperMixin, MetaEstimatorMixin, BaseEstimator):
 class ModelForestRegressor(AttributeWrapperMixin, ForestRegressor, MetaEstimatorMixin):
     _model_tree_class = ModelTree
 
-    def __init__(self, estimator, leaf_estimator, pairwise=False, min_impurity=0.0):
+    def __init__(
+        self,
+        estimator,
+        leaf_estimator,
+        pairwise=False,
+        min_impurity=0.0,
+        warm_start=False,
+    ):
         self.estimator = estimator
         self.leaf_estimator = leaf_estimator
         self.pairwise = pairwise
         self.min_impurity = min_impurity
+        self.warm_start = warm_start
 
     @_fit_context(prefer_skip_nested_validation=False)
     def fit(self, X, y, **fit_params):
-        self.estimator_ = clone(self.estimator).fit(X, y, **fit_params)
-        self.estimators_ = []
-        for tree in self.estimator_.estimators_:
+        if not self.warm_start:
+            self.estimator_ = clone(self.estimator)
+            self.estimators_ = []
+        else:
+            # Assign estimator_ if not already set
+            if not hasattr(self, "estimator_"):
+                try:
+                    check_is_fitted(self.estimator)
+                    self.estimator_ = self.estimator
+                except NotFittedError:
+                    # Clone to avoid modifying the original estimator
+                    self.estimator_ = clone(self.estimator)
+                    # Setting estimator to use the same instance in future calls to fit
+                    self.estimator = self.estimator_
+
+            self.estimators_ = getattr(self, "estimators_", [])
+
+            for i, (wrapped_tree, tree) in enumerate(
+                zip(self.estimators_, getattr(self.estimator_, "estimators_", []))
+            ):
+                if wrapped_tree.estimator_ is not tree:
+                    self.estimators_ = self.estimators_[:i]
+                    break
+
+        self.estimator_.fit(X, y, **fit_params)
+
+        for tree in self.estimator_.estimators_[len(self.estimators_):]:
             model_tree = self._model_tree_class(
                 tree,
                 self.leaf_estimator,
