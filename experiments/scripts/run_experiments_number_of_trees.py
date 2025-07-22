@@ -200,27 +200,27 @@ class NTreesRunExecutor(BaseRunExecutor):
             # Log scores and append them to the scores list.
             scores.extend(self.log_metrics(prediction_samples))
 
-        # HACK
-        scores_df = pd.DataFrame(scores)
-        scores_df = scores_df.assign(
-            **scores_df.setting_name.str.extract(
-                r"^(?P<fold_name>.*?)__sample(?P<sample>\d+)$"
-            )
-        )
-        mean_scores = (
-            scores_df.groupby(["fold_name", "metric", "step"])["value"]
-            .mean()
-            .reset_index()
-        )
+        # # HACK
+        # scores_df = pd.DataFrame(scores)
+        # scores_df = scores_df.assign(
+        #     **scores_df.setting_name.str.extract(
+        #         r"^(?P<fold_name>.*?)__sample(?P<sample>\d+)$"
+        #     )
+        # )
+        # mean_scores = (
+        #     scores_df.groupby(["fold_name", "metric", "step"])["value"]
+        #     .mean()
+        #     .reset_index()
+        # )
 
-        for score in tqdm(mean_scores.itertuples(), desc="Logging mean scores"):
-            self.client.log_metric(
-                run_id=self._run_id,
-                key=f"{score.fold_name}__{score.metric}",
-                value=score.value,
-                step=score.step,
-                synchronous=False,
-            )
+        # for score in tqdm(mean_scores.itertuples(), desc="Logging mean scores"):
+        #     self.client.log_metric(
+        #         run_id=self._run_id,
+        #         key=f"{score.fold_name}__{score.metric}",
+        #         value=score.value,
+        #         step=score.step,
+        #         synchronous=False,
+        #     )
 
         # print("Logging individual predictions...")
         # self.client.log_dict(
