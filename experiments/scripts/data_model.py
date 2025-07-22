@@ -13,7 +13,6 @@ import numpy.typing as npt
 import mlflow.tracking
 import mlflow.entities
 from sklearn.base import BaseEstimator, clone
-from tqdm import tqdm
 
 sys.path.append(str(Path(__file__).parent))  # HACK
 
@@ -291,11 +290,13 @@ class BaseRunExecutor:
         self.check_run_active()
         run_id = self._run_id
 
+        result_records = []
+
         for metric_function_loader in self.metric_function_loaders:
             metric_name = metric_function_loader.name
             metric_func, _ = metric_function_loader.load()
 
-            for pred in tqdm(predictions, desc=metric_name):
+            for pred in predictions:
                 setting_name = pred.name
                 step = pred.step
 
@@ -303,7 +304,17 @@ class BaseRunExecutor:
 
                 try:  # Ignore scoring errors
                     score = metric_func(pred.targets, pred.predictions)
-                    self.client.log_metric(run_id, score_name, score, step=step)
+                    self.client.log_metric(
+                        run_id, score_name, score, step=step, synchronous=False
+                    )
+                    result_records.append(
+                        {
+                            "metric": metric_name,
+                            "setting_name": setting_name,
+                            "value": score,
+                            "step": step,
+                        }
+                    )
                 except ValueError as e:
                     self.client.log_text(
                         run_id, str(e), f"{score_name}__error_message.txt"
@@ -313,6 +324,8 @@ class BaseRunExecutor:
                         traceback.format_exc(),
                         f"{score_name}__error_traceback.txt",
                     )
+
+        return result_records
 
     def create_run(self) -> mlflow.entities.Run | None:
         """Create a new run in MLflow. Return None if the run should be skipped."""
