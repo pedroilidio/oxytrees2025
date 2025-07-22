@@ -12,6 +12,7 @@ import multiprocessing as mp
 from warnings import warn
 
 import numpy as np
+import pandas as pd
 import yaml
 import click
 from sklearn.base import clone, BaseEstimator
@@ -163,35 +164,63 @@ class NTreesRunExecutor(BaseRunExecutor):
         # n_trees_updater.set_n_trees(max(self.values))
         individual_preds = apply_estimator(estimator, dataset, self.fold)
 
-        predictions = []
+        scores = []
+
+        # How many diferent order of trees to sample
         n_samples = 50  # TODO: make it configurable
+        values_array = np.asarray(self.values, dtype=int)
+        max_n_trees = values_array.max()
         rng = np.random.default_rng(0)
 
         print("Logging metrics...")
-        for n_trees in tqdm(self.values, desc="Getting predictions"):
-            for pred in individual_preds:
-                pred_predictions = pred.predictions  # .swapaxes(0, -1)
-                # assert pred_predictions.shape == ()
-                sum_pred = np.zeros_like(
-                    pred_predictions, shape=(n_samples, *pred_predictions.shape[1:])
-                )
-                for _ in range(n_trees):
-                    # Randomly select a tree to use for prediction
-                    sum_pred += rng.permutation(pred_predictions)[:n_samples, ...]
-                avg_pred = sum_pred / n_trees
+        for pred in tqdm(individual_preds, desc="Logging metrics"):
+            # pred.predictions.shape == (n_total_trees, *y.shape)
+            # permutations.shape == (n_samples, max_n_trees, *y.shape)
+            permutations = np.stack(
+                [
+                    rng.choice(pred.predictions, size=max_n_trees, replace=False)
+                    for _ in range(n_samples)
+                ],
+                axis=0,
+            )
 
-                prediction_samples = []
-                for sample, sample_pred in enumerate(avg_pred):
-                    prediction_samples.append(
-                        replace(
-                            pred,
-                            name=f"{pred.name}__sample{sample}",
-                            predictions=sample_pred,
-                            step=n_trees,
-                        )
+            # cumsums_over_trees.shape == (n_samples, max_n_trees, *y.shape)
+            cumsums_over_trees = np.cumsum(permutations, axis=1)
+
+            prediction_samples = []
+            for n_trees, i_sample in product(values_array, range(n_samples)):
+                prediction_samples.append(
+                    replace(
+                        pred,
+                        name=f"{pred.name}__sample{i_sample}",
+                        predictions=cumsums_over_trees[i_sample, n_trees - 1],
+                        step=n_trees,
                     )
-                self.log_metrics(prediction_samples)
-                # predictions.extend(prediction_samples)
+                )
+            # Log scores and append them to the scores list.
+            scores.extend(self.log_metrics(prediction_samples))
+
+        # HACK
+        scores_df = pd.DataFrame(scores)
+        scores_df = scores_df.assign(
+            **scores_df.setting_name.str.extract(
+                r"^(?P<fold_name>.*?)__sample(?P<sample>\d+)$"
+            )
+        )
+        mean_scores = (
+            scores_df.groupby(["fold_name", "metric", "step"])["value"]
+            .mean()
+            .reset_index()
+        )
+
+        for score in tqdm(mean_scores.itertuples(), desc="Logging mean scores"):
+            self.client.log_metric(
+                run_id=self._run_id,
+                key=f"{score.fold_name}__{score.metric}",
+                value=score.value,
+                step=score.step,
+                synchronous=False,
+            )
 
         # print("Logging individual predictions...")
         # self.client.log_dict(
@@ -201,18 +230,6 @@ class NTreesRunExecutor(BaseRunExecutor):
         # )
 
         # FIXME: Logging predictions is too heavy. We log only the metrics.
-        # return estimator, predictions
-        return estimator, []
-
-        # predictions: list[PredictionRecord] = []
-        # for n_trees in self.values:
-        #     # Update the number of trees in the estimator
-        #     n_trees_updater.set_n_trees(n_trees)
-        #     preds = apply_estimator(estimator, dataset, self.fold)
-        #     self.log_metrics(preds, step=n_trees)
-        #     predictions.extend([replace(p, name=f"{p.name}__{n_trees}") for p in preds])
-
-        # HACK: we take change of logging the metrics, so we dont't return predictions.
         # return estimator, predictions
         return estimator, []
 
@@ -544,10 +561,7 @@ def main(
                 experiment_ids=[e.experiment_id for e in client.search_experiments()],
                 max_results=50_000,  # Maximum allowed by MLflow
             )
-            finished_runs = {
-                run.info.run_name
-                for run in tqdm(finished_runs, desc="Processing finished runs")
-            }
+            finished_runs = {run.info.run_name for run in finished_runs}
 
         print("Loading metric functions...")
         metric_function_loaders = [
