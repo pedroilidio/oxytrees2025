@@ -1,3 +1,4 @@
+import itertools
 from typing import Iterable, Callable
 import functools
 from dataclasses import dataclass, field, replace
@@ -6,8 +7,8 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from itertools import product
 from importlib import import_module
+import time
 import multiprocessing as mp
 from warnings import warn
 
@@ -18,9 +19,10 @@ import click
 from sklearn.base import clone, BaseEstimator
 import sklearn.exceptions
 from sklearn.utils.validation import check_is_fitted
+import mlflow
 from mlflow import MlflowClient
 from mlflow.types import TensorSpec, Schema
-from mlflow.entities import ViewType
+import mlflow.entities
 from mlflow.models.signature import ModelSignature
 from tqdm import tqdm
 
@@ -161,6 +163,11 @@ class NTreesRunExecutor(BaseRunExecutor):
             n_trees_updater.forest, IndividualTrees
         ), f"Expected IndividualTrees, got {type(n_trees_updater.forest)}."
 
+        try:
+            n_trees_updater.set_n_trees(max(self.values))
+        except ValueError as e:
+            warn(f"Failed to set number of trees to {max(self.values)}: {e}.")
+
         # n_trees_updater.set_n_trees(max(self.values))
         individual_preds = apply_estimator(estimator, dataset, self.fold)
 
@@ -170,35 +177,67 @@ class NTreesRunExecutor(BaseRunExecutor):
         n_samples = 50  # TODO: make it configurable
         values_array = np.asarray(self.values, dtype=int)
         max_n_trees = values_array.max()
-        rng = np.random.default_rng(0)
 
-        print("Logging metrics...")
-        for pred in tqdm(individual_preds, desc="Logging metrics"):
-            # pred.predictions.shape == (n_total_trees, *y.shape)
-            # permutations.shape == (n_samples, max_n_trees, *y.shape)
-            permutations = np.stack(
-                [
-                    rng.choice(pred.predictions, size=max_n_trees, replace=False)
-                    for _ in range(n_samples)
-                ],
-                axis=0,
-            )
+        def prediction_iterator():
+            rng = np.random.default_rng(0)
+            for pred, i_sample in itertools.product(individual_preds, range(n_samples)):
+                # sample_pred.shape == (max_n_trees, *y.shape)
+                sample_pred = rng.choice(
+                    pred.predictions, size=max_n_trees, replace=False
+                )
 
-            # cumsums_over_trees.shape == (n_samples, max_n_trees, *y.shape)
-            cumsums_over_trees = np.cumsum(permutations, axis=1)
+                # cumsums_over_trees.shape == (max_n_trees, *y.shape)
+                cumsums_over_trees = np.cumsum(sample_pred, axis=0)
+                # Not needed for AUROC and AUPR (ranking-based metrics):
+                # cumsums_over_trees /= np.arange(1, max_n_trees + 1)[None, :, None]
 
-            prediction_samples = []
-            for n_trees, i_sample in product(values_array, range(n_samples)):
-                prediction_samples.append(
-                    replace(
+                for n_trees in values_array:
+                    yield replace(
                         pred,
                         name=f"{pred.name}__sample{i_sample}",
-                        predictions=cumsums_over_trees[i_sample, n_trees - 1],
+                        predictions=cumsums_over_trees[n_trees - 1],
                         step=n_trees,
                     )
-                )
-            # Log scores and append them to the scores list.
-            scores.extend(self.log_metrics(prediction_samples))
+
+        # Log scores and append them to the scores list.
+        print("Logging metrics...")
+        scores = self.log_metrics(
+            tqdm(
+                prediction_iterator(),
+                total=len(self.values) * n_samples * 6,
+                desc="Logging metrics",
+            ),
+        )
+        # rng = np.random.default_rng(0)
+        # print("Logging metrics...")
+        # for pred in tqdm(individual_preds, desc="Logging metrics"):
+        #    # pred.predictions.shape == (n_total_trees, *y.shape)
+        #    # permutations.shape == (n_samples, max_n_trees, *y.shape)
+        #    permutations = np.stack(
+        #        [
+        #            rng.choice(pred.predictions, size=max_n_trees, replace=False)
+        #            for _ in range(n_samples)
+        #        ],
+        #        axis=0,
+        #    )
+
+        #    # cumsums_over_trees.shape == (n_samples, max_n_trees, *y.shape)
+        #    cumsums_over_trees = np.cumsum(permutations, axis=1)
+        #    # Not needed for AUROC and AUPR (ranking-based metrics):
+        #    # cumsums_over_trees /= np.arange(1, max_n_trees + 1)[None, :, None]
+
+        #    # Log scores and append them to the scores list.
+        #    scores.extend(
+        #        self.log_metrics(
+        #            replace(
+        #                pred,
+        #                name=f"{pred.name}__sample{i_sample}",
+        #                predictions=cumsums_over_trees[i_sample, n_trees - 1],
+        #                step=n_trees,
+        #            )
+        #            for n_trees, i_sample in product(values_array, range(n_samples))
+        #        )
+        #    )
 
         # HACK
         scores_df = pd.DataFrame(scores)
@@ -213,14 +252,19 @@ class NTreesRunExecutor(BaseRunExecutor):
             .reset_index()
         )
 
-        for score in tqdm(mean_scores.itertuples(), desc="Logging mean scores"):
-            self.client.log_metric(
-                run_id=self._run_id,
-                key=f"{score.fold_name}__{score.metric}",
-                value=score.value,
-                step=score.step,
-                synchronous=False,
-            )
+        print("Logging mean scores...")
+        self.client.log_batch(
+            metrics=[
+                mlflow.entities.Metric(
+                    key=f"{score.fold_name}__{score.metric}",
+                    value=score.value,
+                    step=score.step,
+                    timestamp=int(time.time() * 1000),
+                )
+                for score in mean_scores.itertuples()
+            ],
+            run_id=str(self._run_id),
+        )
 
         # print("Logging individual predictions...")
         # self.client.log_dict(
@@ -260,23 +304,19 @@ def apply_estimator(
         X_predict = dataset.X
 
     y_pred = estimator.predict(X_predict)
-    print(f"estimator: {estimator}")
-    print(f"Predictions shape: {len(y_pred)}, {len(y_pred[0])}")
-    print(f"y shape: {dataset.y.shape}")
     y_pred = np.stack([y_el.reshape(dataset.y.shape) for y_el in y_pred], axis=-1)
-    print(f"Predictions shape 2: {y_pred.shape}")
 
     predictions_dataset: Dataset = replace(dataset, y=y_pred)
     predictions_split: DatasetSplit = fold.split_dataset(predictions_dataset)
 
     predictions_list = []
-    for set_name, dataset in dataset_split.__dict__.items():
-        y_target = dataset.y
+    for set_name, dataset_partition in dataset_split.__dict__.items():
+        y_target = dataset_partition.y
         y_hat = np.moveaxis(
             getattr(predictions_split, set_name).y, (0, 1, 2), (1, 2, 0)
         )
-        print(f"Predictions shape partition: {y_hat.shape}")
-        mask = ~np.isnan(y_target)  # Mask for non-nan values in the target
+        # mask = ~np.isnan(y_target)  # Mask for non-nan values in the target
+        mask = ~np.isnan(y_hat[0])  # Mask for non-nan values in the target
 
         predictions_list.append(
             PredictionRecord(
@@ -403,6 +443,19 @@ def parse_estimators(config: dict, code_paths: list[str]) -> list[NumberOfTreesU
     return estimator_loaders
 
 
+def integer_geomspace(start, end, num):
+    """Avoid dropping integers in geomspace."""
+    a = set(np.geomspace(start, end, num, dtype=int))
+    n_missing = num - len(a)
+    new = min(a)
+    while n_missing:
+        new += 1
+        if new not in a:
+            a.add(new)
+            n_missing -= 1
+    return tuple(sorted(a))
+
+
 @click.command()
 @click.option(
     "--estimator-definitions",
@@ -457,14 +510,14 @@ def parse_estimators(config: dict, code_paths: list[str]) -> list[NumberOfTreesU
 @click.option(
     "--end",
     type=int,
-    default=500,
+    default=200,
     help="Number of trees to end with.",
 )
 @click.option(
-    "--interval",
+    "--n-points",
     type=int,
-    default=10,
-    help="Number of trees to end with.",
+    default=30,
+    help="Number of points to collect on a geometric scale.",
 )
 @click.option(
     "--code-path",
@@ -490,7 +543,7 @@ def main(
     n_jobs,
     start,
     end,
-    interval,
+    n_points,
     code_path,
     skip_finished=False,
 ):
@@ -513,7 +566,8 @@ def main(
     client = MlflowClient(tracking_uri=tracking_uri)
     pool = mp.Pool(n_jobs)
 
-    n_trees_values = tuple(range(start, end + 1, interval))  # Inclusive range
+    n_trees_values = integer_geomspace(start, end, n_points)
+    print(f"Using n_trees values: {n_trees_values}")
 
     estimator_config = yaml.safe_load(estimator_definitions)
     dataset_config = yaml.safe_load(dataset_definitions)
@@ -555,7 +609,7 @@ def main(
             finished_runs = client.search_runs(
                 # filter_string="status = 'FINISHED'",
                 filter_string="status != 'FAILED'",
-                run_view_type=ViewType.ACTIVE_ONLY,
+                run_view_type=mlflow.entities.ViewType.ACTIVE_ONLY,
                 # Search all experiments. Sometimes we create a different experiment
                 # to be able to change the artifact location.
                 experiment_ids=[e.experiment_id for e in client.search_experiments()],

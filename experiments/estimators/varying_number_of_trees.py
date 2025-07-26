@@ -8,7 +8,8 @@ from .forests_with_nrlmf import nrlmf__bxt_gmo
 DEFAULT_FOREST_PARAMS = MappingProxyType(
     dict(
         bipartite_adapter="gmosa",
-        n_estimators=500,
+        # n_estimators=500,
+        n_estimators=200,
         bootstrap=False,
         max_samples=None,
         random_state=0,

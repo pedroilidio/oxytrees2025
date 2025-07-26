@@ -4,9 +4,10 @@ import functools
 from pathlib import Path
 from dataclasses import dataclass, field, replace
 import traceback
-from typing import Any, Callable, final
+from typing import Any, Callable, Iterable, final
 from warnings import warn
 from importlib import import_module
+import time
 
 import numpy as np
 import numpy.typing as npt
@@ -285,7 +286,7 @@ class BaseRunExecutor:
         """
         raise NotImplementedError("Subclasses must implement apply_estimator method.")
 
-    def log_metrics(self, predictions: list[PredictionRecord]):
+    def log_metrics(self, predictions: Iterable[PredictionRecord]):
         """Compute and log metrics for the predictions."""
         self.check_run_active()
         run_id = self._run_id
@@ -299,22 +300,22 @@ class BaseRunExecutor:
             for pred in predictions:
                 setting_name = pred.name
                 step = pred.step
-
                 score_name = f"{setting_name}__{metric_name}"
 
                 try:  # Ignore scoring errors
                     score = metric_func(pred.targets, pred.predictions)
-                    self.client.log_metric(
-                        run_id, score_name, score, step=step, synchronous=False
-                    )
                     result_records.append(
                         {
                             "metric": metric_name,
                             "setting_name": setting_name,
                             "value": score,
                             "step": step,
+                            "score_name": score_name,
+                            # "timestamp": mlflow.utils.time.get_current_time_millis(),
+                            "timestamp": int(time.time() * 1000)
                         }
                     )
+
                 except ValueError as e:
                     self.client.log_text(
                         run_id, str(e), f"{score_name}__error_message.txt"
@@ -325,6 +326,18 @@ class BaseRunExecutor:
                         f"{score_name}__error_traceback.txt",
                     )
 
+        self.client.log_batch(
+            metrics=[
+                mlflow.entities.Metric(
+                    key=rec["score_name"],
+                    value=rec["value"],
+                    timestamp=rec["timestamp"],
+                    step=rec["step"],
+                )
+                for rec in result_records
+            ],
+            run_id=str(run_id),
+        )
         return result_records
 
     def create_run(self) -> mlflow.entities.Run | None:
