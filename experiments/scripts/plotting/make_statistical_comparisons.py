@@ -296,7 +296,7 @@ def iter_posthoc_comparisons(
             melted=True,
             y_col=metric,
             block_col=fold_col,
-            block_id_col=fold_col,
+            # block_id_col=fold_col,
             group_col=estimator_col,
             # p_adjust=p_adjust,
         )

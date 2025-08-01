@@ -165,7 +165,7 @@ class NTreesRunExecutor(BaseRunExecutor):
 
         try:
             n_trees_updater.set_n_trees(max(self.values))
-        except ValueError as e:
+        except (ValueError, AttributeError) as e:
             warn(f"Failed to set number of trees to {max(self.values)}: {e}.")
 
         # n_trees_updater.set_n_trees(max(self.values))

@@ -316,7 +316,8 @@ class BaseRunExecutor:
                         }
                     )
 
-                except ValueError as e:
+                # except ValueError as e:
+                except Exception as e:
                     self.client.log_text(
                         run_id, str(e), f"{score_name}__error_message.txt"
                     )
