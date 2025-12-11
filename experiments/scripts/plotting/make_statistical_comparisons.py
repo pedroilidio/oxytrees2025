@@ -62,7 +62,9 @@ def set_rc_params():
             "text.usetex": True,
             "font.family": "serif",
             "font.weight": "bold",
-            # "font.serif": ["Times New Roman"],
+            "font.serif": ["Times New Roman"],
+            # Set font type to avoid Type 3 fonts
+            "pdf.fonttype": 42,
             # "font.size": 10,
             # "axes.labelsize": 10,
             # "axes.titlesize": 10,

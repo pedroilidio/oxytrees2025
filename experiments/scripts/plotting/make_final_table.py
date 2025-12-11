@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 
 # TODO: move to separate file
 RENAME_VALIDATION_SETTING = {
-    "TT": "0\%",
-    "TT_25": "25\%",
-    "TT_50": "50\%",
-    "TT_75": "75\%",
+    "TT": r"0\%",
+    "Inductive": r"0\%",
+    "TT_25": r"25\%",
+    "TT_50": r"50\%",
+    "TT_75": r"75\%",
 }
 
 
@@ -63,6 +64,7 @@ def plot_masking_vs_score(data: pd.DataFrame, outdir: Path):
     denom = pd.concat(
         [
             data.loc[pd.IndexSlice[:, :, ["0\\%"]]],
+            # data.loc[pd.IndexSlice[:, :, ["Inductive"]]],
             data.loc[pd.IndexSlice[:, :, ["25\\%"], transductive_mask]],
         ]
     ).droplevel("validation_setting")

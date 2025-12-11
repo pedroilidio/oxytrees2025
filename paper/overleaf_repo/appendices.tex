@@ -1,0 +1,1847 @@
+\pagebreak
+\begin{appendices}
+
+\crefalias{section}{appendix}
+\crefalias{enumi}{definition}
+\counterwithin{figure}{section}
+\counterwithin{table}{section}
+\renewcommand\thefigure{\thesection\arabic{figure}}
+\renewcommand\thetable{\thesection\arabic{table}}
+
+\renewcommand\thetheorem{\thesection\arabic{theorem}}
+
+\section{Additional Illustrations}
+\label{sec:additional illustrations}
+\FloatBarrier
+
+%\begin{figure}[tbh]
+%    \centering
+%    \def\svgscale{.3}
+%    \input{figures/illustrations/lmo.pdf_tex}
+%    \caption{Caption}
+%    \label{fig:lmo}
+%\end{figure}
+
+\begin{figure}[tbhp]
+    \centering
+    \def\svgscale{.3}
+    \input{figures/illustrations/oxytree_prediction.pdf_tex}
+    \caption{Illustration of the inference procedure of an Oxytree with the RLS-Kron as the leaf model. The $\phi$ feature vectors contain similarities of the test instance with the training instances. We use $\otimes$ to denote the Kronecker product and $\odot$ to denote the Hadamard (element-wise) product. $W_\text{leaf}$ represent the matrix of linear coefficients learned during training for the leaf node illustrated.}
+    \label{fig:oxytrees prediction}
+\end{figure}
+
+
+\FloatBarrier
+
+\section{Additional Algorithms}
+\label{sec:additional algorithms}
+\FloatBarrier
+
+\begin{function}[tb]
+    \caption{FindBestSplitOxytree($X_1$, $X_2$, $Y$): The split search procedure of Oxytrees.}
+    \label{alg:find best split bgso}
+    
+    \KwIn{The partition of the training set that reached a given tree node}
+    \KwOut{The best split rule among the evaluated split candidates}
+    \BlankLine
+    Determine the set $S_1$ of horizontal split rules to consider\;
+    
+    Determine the set $S_2$ of vertical split rules to consider\;
+    \BlankLine
+    
+    Using $Y$, build the proxy matrices $\tilde Y_1$ and $\tilde Y_2$ (\cref{eq:proxies})\;
+    %\tcp{$\tilde Y_1^i$ summarizes all the interactions of $X_1^i$.}
+    %\tcp{$\tilde Y_2^j$ summarizes all the interactions of $X_2^j$.}
+    %\tcp{For our specific impurity in \cref{eq:i bgso}, use \cref{eq:proxies}.}
+    \BlankLine
+
+    %$s^\star \gets null$  \tcp*{Initialize the best split}
+    $s^\star \gets null$  \tcp*{The best split}
+    $\Delta I^\star \gets 0$  \tcp*{The best $I$ improvement}
+    \BlankLine
+    
+    \ForEach {horizontal split rule $s_1 \in S_1$}{
+        Determine $\Delta I (s_1,\; X_1,\; \tilde Y_1)$\label{ln:y1}\;
+        \BlankLine
+        \uIf{$\Delta I (s_1, X_1, \tilde Y_1) > \Delta I^\star$}{
+            $s^\star \gets s_1$ 
+        }
+    }
+    \ForEach {vertical split rule $s_2 \in S_2$}{
+        Determine $\Delta I (s_2,\; X_2,\; \tilde Y_2)$\label{ln:y2}\;
+        \BlankLine
+        \uIf{$\Delta I (s_2, X_2, \tilde Y_2) > \Delta I^\star$}{
+            $s^\star \gets s_2$ 
+        }
+    }
+    \BlankLine
+    \Return $s^\star$
+\end{function}
+
+
+
+% \begin{function}[tb]
+%     \caption{BuildTree($X$, $Y$): General procedure for building a decision tree}
+%     \label{alg:dt build}
+%     
+%     \KwIn{The training data}
+%     \KwOut{A tree node pointing to its descendants}
+%     \SetKwFunction{rightchild}{RightChild}
+%     \SetKwFunction{leftchild}{LeftChild}
+%     \SetKwFunction{node}{Node}
+%     \SetKwFunction{leaf}{Leaf}
+%     \SetKwFunction{self}{BuildTree}
+%     \SetKwFunction{findbestsplit}{FindBestSplit}
+%     \BlankLine
+% 
+%     \If{Stopping criteria are met}{
+%         Create a leaf node \leaf\;
+%         \Return{\leaf}
+%     }
+%     
+%     \BlankLine
+%     $s^\star \gets$ \findbestsplit($X$, $Y$)
+%     \tcp*{Determine the split rule to be used}
+%     \BlankLine
+%     
+%     Create a new node \node containing $s^\star$\;
+%     
+%     \BlankLine
+%     Use $s^\star$ to obtain dataset partitions ($X_\text{left}$, $Y_\text{left}$) and ($X_\text{right}$, $Y_\text{right}$)\;
+%     
+%     \BlankLine
+%     \leftchild $\gets$ \self($X_\text{left}$, $Y_\text{left}$)
+%     \tcp*{Create children nodes}
+%     \rightchild $\gets$ \self($X_\text{right}$, $Y_\text{right}$)\;
+%     
+%     \BlankLine
+%     \Return{\node}
+% \end{function}
+
+\begin{function}[tb]
+    \caption{FindBestSplit($X$, $Y$): A generic split search procedure for greedy decision trees}
+    \label{alg:find best split dt}
+    
+    \KwIn{The partition of the training set that reached a given tree node}
+    \KwOut{The best split rule among the evaluated split candidates}
+    \BlankLine
+    %\SetKwFunction{SplitQuality}{SplitQuality}
+    %\SetKwFunction{BestSplit}{BestSplit}
+    %\SetKwFunction{SplitDataset}{SplitDataset}
+    %\tcp{Index of the feature ($X$ column) used in the best split found}
+    %Initialize \BestSplit object\;
+    %Calculate $\savg{Y^{i}}_i$ and $\savg{(Y^{i})^2}_i$\;
+    %$S_l \gets 0$ \tcp*{The same but for $Y_l$}
+    % $f^* \gets 0$ \tcp*{best split's feature}
+    % $\Delta I^* \gets 0$ \tcp*{best split's quality}
+    % $t^* \gets 0$ \tcp*{best split's threshold}
+    Determine the set $S$ of split rules to consider.
+    \BlankLine
+
+    $s^\star \gets \emptyset$  \tcp*{Initialize the best split}
+    \BlankLine
+    
+    \ForEach {split rule $s \in S$}{
+        Determine $\Delta I (s, X, Y)$\;
+        \BlankLine
+        \If{$\Delta I (s, X, Y) > \Delta I (s^\star, X, Y)$}{
+            $s^\star \gets s$ 
+        }
+    }
+    \BlankLine
+    \Return $s^\star$
+\end{function}
+
+\begin{function}[tb]
+    \caption{FindBestSplitBICTR($X_1$, $X_2$, $Y$): Split search procedure used by methods based on PBCT~\cite{pliakos_global_2018}, including the main competitor BICTR~\cite{pliakos_drug-target_2020}.}
+    \label{alg:find best split gmo}
+    
+    \KwIn{The partition of the training set that reached a given tree node}
+    \KwOut{The best split rule among the evaluated split candidates}
+    \BlankLine
+    Determine the set $S_1$ of horizontal split rules to consider.\;
+    
+    Determine the set $S_2$ of vertical split rules to consider.\;
+    \BlankLine
+    
+    $s^\star \gets null$  \tcp*{Initialize the best split}
+    $\Delta I^\star \gets 0$  \tcp*{Initialize the best impurity improvement}
+    \BlankLine
+    
+    \ForEach {horizontal split rule $s_1 \in S_1$}{
+        Determine $\Delta I (s_1, X_1, Y)$\;
+        \BlankLine
+        \uIf{$\Delta I (s_1, X_1, Y) > \Delta I ^\star$}{
+            $s^\star \gets s_1$ 
+        }
+    }
+    \ForEach {vertical split rule $s_2 \in S_2$}{
+        Determine $\Delta I (s_2, X_2, Y\T)$\;
+        \BlankLine
+        \uIf{$\Delta I (s_2, X_2, Y\T) > \Delta I ^\star$}{
+            $s^\star \gets s_2$ 
+        }
+    }
+    \BlankLine
+    \Return $s^\star$
+\end{function}
+
+
+\begin{procedure}[tb]
+    % Renamed from BatchAssignLeaves
+    % AssignLeavesOxytrees -> AssignLeaves
+    \caption{AssignLeaves($X_1$, $X_2$, Node): The proposed leaf assignment procedure for biclustering trees}
+    \label{alg:batch assign leaves}
+    
+    \KwIn{A tree node and sets $X_1$ and $X_2$ of test instances in each dimension}
+    \KwResult{A leaf is assigned to each interaction between $X_1$ and $X_2$}
+    \SetKwFunction{self}{AssignLeavesOxytrees}
+    \SetKwFunction{node}{Node}
+    \SetKwFunction{leaf}{Leaf}
+    \SetKwFunction{leftchild}{LeftChild}
+    \SetKwFunction{rightchild}{RightChild}
+    \BlankLine
+    
+    \uIf{\node is a \leaf}{
+        Assign \leaf to all the interactions between $X_1$ and $X_2$\label{ln:final leaf assignment}\;
+        \Return
+    }
+    \BlankLine
+    
+    Get the \leftchild and the \rightchild of \node\;
+    Get the feature $f$ and threshold $t$ that define the split rule of \node\;
+    \BlankLine
+    
+    \uIf{\node represents a horizontal split}{
+        %Use the split rule of Node to partition $X_1$ into $X_\text{1, left}$ and $X_\text{1, right}$
+        $X_\text{1, right}\gets \emptyset$\;
+        $X_\text{1, left}\gets \emptyset$\;
+        \ForEach(
+            \tcp*[f]{Use the split rule to partition $X_1$}\label{ln:x segregation}
+        ){
+            $x_1 \in X_1$
+        }{
+            %\uIf{$\mathbf{s_1}(x_1)$}{
+            \uIf{$x_1^f>t$}{
+                $X_\text{1, right}\gets X_\text{1, right} \cup\{x_1\}$\;
+            }
+            \uElse{
+                $X_\text{1, left}\gets X_\text{1, left} \cup\{x_1\}$\;
+            }
+        }
+        \self($X_\text{1, left}$, $X_2$, \leftchild)\;
+        \self($X_\text{1, right}$, $X_2$, \rightchild)\;
+    }
+    \uElse{
+        %Use the split rule of Node to partition $X_1$ into $X_\text{1, left}$ and $X_\text{1, right}$
+        Do the analogous procedure to partition $X_2$ into $X_\text{2, left}$ and $X_\text{2, right}$\;
+        \self($X_1$, $X_\text{2, left}$, \leftchild)\;
+        \self($X_1$, $X_\text{2, right}$, \rightchild)\;
+    }
+\end{procedure}
+
+
+
+\FloatBarrier
+
+\section{Proof of Oxytrees Compatibility Theorem}
+\label{sec:proof}
+
+% \begin{definition}[Dimension-non-increasing functions]
+% \label{ass:well-behaved}
+% For any considered function $f$ between two vector spaces, we require that the dimension of its image be not larger than the dimension of its domain:
+% 
+% \begin{equation}
+%     \mathrm{dim}(\mathrm{Im}(f)) \le \mathrm{dim}(\mathrm{Dom}(f)).
+% \end{equation}
+% \end{definition}
+% 
+% Assumption \ref{ass:well-behaved} excludes, for example, space-filling curves~\cite{}, which are not relevant to our application setting.
+% Smooth functions in general are contemplated, as a result of the Rank-Nullity Theorem~\cite{}.
+% % [Given our applied setting]
+% % [exclude space-filling curves]
+% % [includes linear and smooth functions rank-nullity theorem]
+% 
+% \begin{definition}[Impurity function]
+% Let $\Y \subseteq \R$ be the output space of the machine learning problem being modeled and let $\I \subseteq \R$ be called the impurity space. Let $I\colon \Y^{n\times m} \to \I$. $I$ is a well-defined impurity function iff
+% [norm? triangle inequality?]
+% 
+% [define for bipartite learning, row and column-permutation invariant]
+% 
+% [is expressed in terms of dimension-non-incresing functions]
+% 
+% \end{definition}
+
+\begin{definition}
+Let $S_n$ be the set of all permutations on $n$ elements.
+\end{definition}
+
+\begin{definition}[Permutation invariance]
+\label{def:permutation invariance}
+A function $f:\R^n \to \R^m$ is permutation invariant iff, for all $P \in S_n$ and $\x \in \R^n$, $f(P(\x)) = f(\x)$.
+% TODO: this is not how permutation invariance is defined in the zaheer paper though, why is it equivalent? this is important to be able to use theorem 10 in the current wording
+\end{definition}
+
+\begin{definition}
+%Let $f:\R^n \to \R^m$.
+Let $\sim_P$ be the equivalence relation
+\begin{equation}
+    \x \sim_P \x' \iff \exists P \in S_n : P(\x) = \x'
+\end{equation}
+\end{definition}
+
+\begin{definition}
+Let $[\x]_P$ be the equivalence class of $\x\in\R^n$ induced by $\sim_P$:
+\begin{equation}
+    \label{eq:equivalence class}
+    [\x]_P=\{\x' \in \R^n: \x' \sim_P \x\}
+\end{equation}
+\end{definition}
+
+\begin{definition}
+Let $\R^n/\sim_P:=\{[\x]_P\}$ denote the set of all equivalence classes $[\x]_P$, i.e. the quotient space over $\R^n$ induced by $\sim_P$. 
+%
+\end{definition}
+
+\begin{lemma}
+\label{lemma:permutation invariance}
+$f:\R^n \to \R^m$ is permutation invariant iff
+%it can be factored.
+there exists $b : \R^n/\sim_P \to \R^m$ such that $f = b \circ \pi$,
+%where $\;\pi : \R^n \to \R^n/\sim_P$ is the canonical surjection $\x\mapsto [\x]_P$.
+where $\;\pi$ is the canonical surjection $\x\mapsto [\x]_P$.
+\end{lemma}
+
+\begin{proof}
+Let $P' \in S_n$ and $\x \in \R$. Now let $\x'=P'(\x)$. Since $P'$ exists, by definition $\x'\sim_P \x$ and $[\x]_P=[\x']_P$. Then 
+\begin{equation}
+    \label{eq:p1}
+    \pi(P'(\x)) = [P'(\x)]_P
+    = [\x']_P
+    = [\x]_P
+    = \pi(\x)
+\end{equation}
+To prove sufficiency, if $b$ exist and $f=b\circ \pi$, then 
+\begin{align}
+    f(\x) &= b(\pi(\x))\nonumber\\
+    &= b([\x]_P)\nonumber\\
+    &= b([P'(\x)]_P)\nonumber\\
+    &= b(\pi(P'(\x)))\nonumber\\
+    &= f(P'(\x)))
+\end{align}
+This is valid for all $\x \in \R^n$ and $P'\in S_n$, since both were taken at random. Therefore $f$ is permutation invariant.
+
+To show necessity, let $f:\R^n \to \R^m$ be a permutation invariant function. Define $b([\x]_P)=f(\x)$. Let $\x,\x'\in \R^n$.
+If $b([\x]_P) \neq b([\x']_P)$, $f(\x) \neq f(\x')$ by definition.
+Since $f$ is permutation invariant, $\nexists P\in S_n : \x' = P(\x)$. Therefore, $\x'\nsim_P \x$, which implies $[\x']_P \neq [\x]_P$, showing that $b([\x]_P) \neq b([\x']_P) \implies [\x]_P \neq [\x']_P$. Since $\x$ and $\x'$ were taken at random, this shows that $b$ is a well-defined function.
+\end{proof}
+
+
+\begin{definition}[Row-proxy representation]
+\label{def:proxy}
+
+
+Let $I: \Y^{m\times n} \to \I$.
+% TODO: what is mathcal Y, what is Y tilde. Why not R (given the previous definition)?
+If it exists, a row-wise proxy representation of $I$ is defined as two real functions $\mu_r : \Y^{m} \to \M_r$ and $\rho_r \colon \M^n_r \to \I$, where $\M_r \subseteq \R^k$, such that:
+%
+\begin{enumerate}[label=\arabic*., ref=\thedefinition{} item \arabic*]
+    %\item $I(Y) = \rho_r (\{\mu_r(Y^{i}) \;\forall \; i \in [1, 2, \dots, n]\})$, being $Y^{i}$ the $i$-th row of $Y$;
+    % \forall Y \in \Y^{m \times n}: 
+    \item \label{def:I from rho mu} $I(Y) = \rho_r \begin{pmatrix} \mu_r(Y^{1}), & \mu_r(Y^{2}), &\dots, & \mu_r(Y^{n})\end{pmatrix}$, with $Y^{i}$ the $i$-th row of $Y$;
+    \item $\rho_r$ is permutation invariant;
+    %\item $\Y \subseteq \R^{n \times m}$;
+    %\item $\tilde {\Y} \subseteq \R$;
+    \item\label{def:compression} The dimension of $\M_r$ is independent from the the number of columns of $Y \in \Y^{n \times m}$, i.e. %$\exists \;\mu_r \mid \Y^m \to \M_r\quad \textrm{and} \quad$
+    $\exists k\in \N^\ast$, $\forall m \in \N^\ast: \M_r \subseteq \R^k$.
+    % TODO: maybe better to work with dim here as well? shouldn't that be Y^m btw? so exists k such that for all m: k = dim(M) < dim(Y^m)
+\end{enumerate}
+\end{definition}
+%
+\Cref{def:compression} represents the key aspect that allows the reduction of computational complexity.
+We define
+% \begin{gather*}
+%     \pmb{\mu}_r \colon \Y^{n \times m} \to \M^n_r:
+%     \\
+%     \pmb{\mu}_r(Y) = \begin{pmatrix} \mu_r(Y^{1}), & \mu_r(Y^{2}), &\dots, & \mu_r(Y^{n})\end{pmatrix}
+% \end{gather*}
+\begin{align*}
+    \pmb{\mu}_r \colon \Y^{n \times m} & \to \M^n_r:
+    \\
+    Y & \mapsto \begin{pmatrix} \mu_r(Y^{1}), & \mu_r(Y^{2}), &\dots, & \mu_r(Y^{n})\end{pmatrix}
+\end{align*}
+%
+in order to express \cref{def:I from rho mu} more concisely as $I = \rho_r \circ \pmb{\mu}_r$.
+
+%Additionally, we require that $\mu_r$ respects $\mu_r\; \textrm{surjective} \implies \textrm{dim}(\textrm{Dom}(\mu_r)) \le $.
+
+A column-wise proxy representation is defined by functions $\mu_c$ and $\rho_c$, respecting the analogous representations for $I(Y^T)$ and respecting the analogous constraints.
+% TODO: elaborate
+
+%From now on we will phrase the text in the rows direction, but all results are valid also in the columns direction.
+
+%[do not enforce mu to be equal]
+
+%[3 more general: exists m such that k < m]
+
+%[mu(Yi) is the row proxy]
+
+\begin{definition}[Surjectivity]
+\[
+    c\colon \mathcal{A} \to \mathcal{C} \text{ is surjective} \iff \forall C \in \mathcal{C},\exists A \in \mathcal{A} : c(A) = C
+\]
+\end{definition}
+
+\begin{lemma}
+\label{lemma:surj}
+
+If the composition of two functions is surjective, the outer-most component function is also surjective:
+\begin{equation}
+  \begin{tikzcd}
+    & \mathcal{B} \arrow{dr}{b} &
+    \\
+    \mathcal{A} \arrow{ur}{a} \arrow[two heads]{rr}{c} & & \mathcal{C}
+  \end{tikzcd}
+\end{equation}
+% \[
+%     \exists \text{surjective} c\colon \mathcal{A} \twoheadrightarrow \mathcal{C} \mid c = b\circ a \implies b \text{ is surjective}
+% \]
+\begin{multline}
+    \forall a: \mathcal{A} \to \mathcal{B}, b: \mathcal{B} \to \mathcal{C}, c: \mathcal{A} \to \mathcal{C}:
+    \\
+    :(c = b \circ a) \land (c \text{ surjective}) \implies b \text{ surjective}
+\end{multline}
+\end{lemma}
+% \begin{proof}
+% If $c = b \circ a$ is surjective, then for all $A \in \mathcal{A}$ we can take $B = a(A)$ such that
+% %Since $\forall \; A\in \mathcal{A}, \;\exists\; B \in \mathcal{B} \mid B = b(A)$,
+% \begin{equation*}
+% \forall\; C \in \mathcal{C},\; \exists \; B \in \mathcal{B} \mid b(B) = C
+% \therefore b \; \text{is surjective}
+% \end{equation*}
+% \end{proof}
+
+\begin{proof}
+Let $C \in \mathcal{C}$. Since $c$ is surjective, there exists an $A \in \mathcal{A}$ such that $c(A) = C$. Now let $B:=a(A)$. Then 
+\begin{equation*}
+    C = c(A) = (b\circ a)(A) = b(a(A)) = b(B),
+\end{equation*}
+showing that $b$ is also surjective (since $C$ was taken at random).
+\end{proof}
+
+
+\begin{definition}
+Let $Y^{i\ast}$ and $Y^{\ast j}$ denote, respectively, the $i$-th row and $j$-th column of $Y\in \Y^{n \times m}$.
+\end{definition}
+
+\begin{definition}%[Column-permutation invariance]
+% TODO: Ahh I see from the commented part now. It's not clear from this definition that this is defining column permutation invariance due to the structure of "Let (...) and let (...)".
+Let $P_c\in S_m$ be a permutation of columns of $Y \in \Y^{n \times m}$ and let $\PP_c:=\Y^{n \times m}/\sim_c$ be the quotient space of $\Y^{n \times m}$ induced by the equivalence relation $\sim_c$ satisfying
+\begin{multline}
+     Y \sim_c Y' \iff \exists \;P_c \in S_m :\\
+     : Y' = \begin{bmatrix}
+         P_c(Y^{1 \ast}), &
+         P_c(Y^{2 \ast}), &
+         \dots, &
+         P_c(Y^{n \ast})
+     \end{bmatrix}
+\end{multline}
+\end{definition}
+% TODO: P_c has already been defined earlier in this definition as a single permutation. Did you mean to define the space of all permutations earlier? Or should this \exists P_c just be dropped?
+% In the latter case, the relation would no longer be symmetrical though and thus no longer a equivalence relation
+% Maybe you meant to write the quotient space as Y^{nxm} / \sim instead?
+
+
+The existence of row-proxies implies existence of $I = \rho_r \circ \pmb{\mu}_c$.
+The existence of column-proxies implies existence of $I = \pi \circ b$.
+Without loss of generality, we assume $I$ to be surjective by setting its codomain to its image: $\I = \text{Im}(I)$.
+%[The existence of column-proxies implies $I$ is column-permutation-invariant and thus $I = b \circ a$.]
+%[Let $\PP_c = \Y^{n \times m}/P_c$.]
+%
+%[By definition of the canonical map we infer the existence of a surjective map $a\colon\Y^{n \times m} \to \PP_c$.]
+\begin{equation}
+  \begin{tikzcd}
+    &
+     \M_r^n
+        %%\arrow[swap, dashed, shift right=1]{dd}{f}
+        %\arrow[dashed, shift left=1, "g" near end]{dd}{}
+        %\arrow[swap, dashleftarrow, shift right=1, "f" near end]{dd}{}
+        \arrow[swap, dashleftarrow, "f" near start]{dd}{}
+        \arrow{dr}{\rho_r}%
+    &
+    \\
+    \Y^{n \times m}
+        \arrow{ur}{\pmb{\mu}_r}
+        %\arrow{ur}{M_r}
+        \arrow[swap, two heads]{dr}{\pi}
+        %\arrow[bend left=60]{rr}{I}
+        \arrow[crossing over, "I" near end, two heads]{rr}{}
+    &
+    &
+    \I
+    \\
+    &
+    %\Y^{n \times m}/P_c
+    \PP_c
+        \arrow[swap]{ur}{b}
+        %\arrow[swap, dashed, shift right=1]{uu}{g}
+        %\arrow[swap, dashed, shift right=1, "g" near end]{uu}{}
+    &
+  \end{tikzcd}
+\end{equation}
+
+
+\begin{lemma}
+\label{lemma:surj functions}
+$b$ and $\rho_r$ are surjective.
+%If they exist, $b$, $\rho_r$, and $g$ are surjective.
+\end{lemma}
+\begin{proof}
+By applying Lemma \ref{lemma:surj} to the compositions
+$I = b \circ \pi$,
+$I =  \rho_r \circ \pmb{\mu}_r$,
+% $a = g \circ \pmb{\mu}_r$,
+%one concludes, respectively, that $b$ and $\rho_r$, and $g$ are surjective.
+one concludes, respectively, that $b$ and $\rho_r$ are surjective.
+\end{proof}
+
+
+\begin{lemma}
+\label{lemma:f exists}
+If $\pmb{\mu}_r: \Y \to \M^n_r$ exists, then there also exists $f: \PP_c \to \M^n_r$.
+% TODO: uniqueness?
+\end{lemma}
+\begin{proof}
+% Choose an element $Y^\ast \in [Y]_c$ for each equivalence class $[Y]_c \in \PP_c$.
+% Define $f([Y^\ast]_c):=h(Y^\ast)$. Let $Y, Y'\in \Y^{n \times m}$. Then $f([Y]_c)\neq f([Y']_c)\implies h(Y) \neq h(Y') \implies Y \neq Y'$. 
+% Therefore $f$ is a well-defined function.
+
+Choose a random element $Y$ in each equivalence class $[Y]_{c} \in \PP_c$.
+% Call $Y$ the \emph{canonical element} of $[Y]_{c}$.
+Let $g\colon \PP_c \to \Y$ be the function that maps each equivalence class to its chosen element: $g([Y]_c) \mapsto Y$.
+Define $f([Y]_c):=\pmb{\mu}_r\circ g([Y]_c)$. Let $Y_a, Y_b\in \Y^{n \times m}$. Then
+%
+\begin{align*}
+    &f([Y_a]_c)\neq f([Y_b]_c) \implies&&\\
+    &\implies \pmb{\mu}_r\circ g([Y_a]_c) \neq \pmb{\mu}_r\circ g([Y_b]_c) &&\text{(definition of $f$)}\\
+    &\implies \pmb{\mu}_r(g([Y_a]_c)) \neq \pmb{\mu}_r(g([Y_b]_c)) \\
+    &\implies g([Y_a]_c) \neq g([Y_b]_c) && (\because \pmb{\mu}_r\text{ is well-defined})\\
+    &\implies [Y_a]_c \neq [Y_b]_c. && (\because\text{ eq. classes are disjoint})
+\end{align*}
+%
+Therefore $f$ is a well-defined function.
+%To show uniqueness, take 
+%% Let $[p] \subset \PP_c$ represent the equivalence class of a point $p\in\PP_c$, defined as $\forall p_A, p_B \in \PP_c$, $[p_A] = [p_B] \iff b(p_A) = b(b_B)$. The set of all equivalence classes is the quotient space $\PP_c/b$.
+%% TODO: maybe it would be more simple to define this as [p] = {q in P_c | b(p) = b(q)}
+%% 
+%% [They are disjoint partitions]
+%% 
+%% Since $\rho_r$ is surjective, there exists a bijection $\beta : \I \to \PP_c/b$ (the inverse of the canonical map).
+%% 
+%% [Explicitly show?]
+%% 
+%% % \[
+%% % \forall\; \tilde y \in \I \; \exists \; q_A \in \M_r^n \mid b(q_A) = \tilde y \implies 
+%% % \]
+%% 
+%% We can choose an element $p_\ast \in [p_\ast]$ for each equivalence class $[p_\ast] \in \PP_c$. Let $h: \PP_c/b \to \PP_c$ be a map $\forall \;[p_\ast] \in \PP_c$, $h([p])\to p_\ast \;\forall\;p \in [p_\ast]$.
+%% Because $h([p]) \in [p]$, by definition
+%% \(
+%%     h([p_A]) \ne h([p_B])
+%%     \implies [p_A] \ne [p_B]
+%% \).
+%% % [Invoking the Axiom of Choice?]
+%% % [We can pick an element $p^\ast$ in each equivalence class]
+%% %$\forall [p]_b \exists p^\ast \in [p]_b \colon h(p) = p^\ast \forall p \in [p]_b$
+%% 
+%% The composition $g = h \circ \beta \circ \rho_r$ is a well-defined function $g\colon \M_r \to \PP_c$, i.e. it satisfies $\forall \; q_A, q_B \in \M_r,\; g(q_A) \neq g(q_B) \implies q_A \neq q_B$:
+%% \begin{align*}
+%%     g(q_A) \neq g(q_B)
+%%         &\implies h([\beta(\rho_r(q_A))]) \ne h([\beta(\rho_r(q_B))])\\
+%%         &\implies [\beta(\rho_r(q_A))] \ne [\beta(\rho_r(q_B))]\\
+%%         &\implies \beta(\rho_r(q_A)) \ne \beta(\rho_r(q_B))\\
+%%         &\implies \rho_r(q_A) \ne \rho_r(q_B)\\
+%%         &\implies q_A \ne q_B
+%% \end{align*}
+%% 
+%% [Since the diagram is symmetric, $f$ also exists.]
+\end{proof}
+
+
+% Then $\forall \tilde y \in \I$.
+%m 
+% Given $\rho_r$ and $b$ are surjective,
+% there exists a bijection between the quotient spaces $\Y^{n \times m}/P/b$ and $\M_r/\rho_r$. Therefore, the 
+%m 
+% %$\forall \tilde{y} \in \I \exists [q]_{\rho_r} \subset \M_r, [p]_{\rho_r} \subset \Y^{n \times m}/P_c \colon $
+%m 
+% %$\forall \tilde{y_A}, \tilde{y_B} \in \I \exists [q]_{\rho_r} \subset \M_r, [p]_{\rho_r} \subset \Y^{n \times m}/P_c \colon $
+% $\forall p_A, p_B \in \Y^{n \times m}/P \exists [q]_{\rho_r} \subset \M_r, [p]_{\rho_r} \subset \Y^{n \times m}/P_c \colon $
+
+
+
+
+% \begin{lemma}
+% $g$ is not dimension-non-increasing.
+% \end{lemma}
+% 
+% \begin{proof}
+% 
+% Definition \ref{def:proxy}.\ref{def:compression} implies that, in general, $\mathrm{dim}(\M_r^n)<\mathrm{dim}(\Y^{n \times m})$.
+% 
+% [$\mathrm{dim}(\PP_c) = \mathrm{dim}(\Y^{n \times m})$]
+% 
+% Since $g$ is surjective (Lemma \ref{lemma:surj functions}), $\mathrm{Im}(g) = \PP_c$, and therefore $\mathrm{dim}(\mathrm{Im}(g))>\mathrm{dim}(\mathrm{Dom}(g))$. This implies that there does not exist a function $g\colon \M_r^n\to \PP_c$ that satisfies Assumption \ref{ass:well-behaved}.
+% 
+% \end{proof}
+% 
+% \begin{lemma}
+% \label{lemma:f well-behaved}
+% $f$ satisfies the dimension-non-increasing assumption (Assumption \ref{ass:well-behaved}).
+% \end{lemma}
+% 
+% \begin{proof}
+% 
+% Definition \ref{def:proxy}.\ref{def:compression} implies that, in general, $\mathrm{dim}(\M_r^n)<\mathrm{dim}(\Y^{n \times m})$.
+% 
+% [$\mathrm{dim}(\PP_c) = \mathrm{dim}(\Y^{n \times m})$]
+% 
+% [$\mathrm{Im}(f)\subseteq \M_r^n \implies \mathrm{dim}(\mathrm{Im}(f)) \le \mathrm{dim}(\M_r^n)$]
+% 
+% Therefore $\mathrm{dim}(\mathrm{Im}(f)) < \mathrm{dim}(\mathrm{Dom}(f))$, satisfying assumption \ref{ass:well-behaved}.
+% 
+% \end{proof}
+
+\begin{lemma}
+\label{lemma:single row permutation}
+$I$ is invariant under permutations of elements of a single row:
+\begin{equation*}
+    I \left(
+    \begin{bmatrix}
+        Y^{1\ast}\\
+        Y^{2\ast}\\
+        \vdots\\
+        Y^{k\ast}\\
+        \vdots\\
+        Y^{n\ast}\\
+    \end{bmatrix}   
+    \right)
+    =
+    I \left(
+    \begin{bmatrix}
+        Y^{1\ast}\\
+        Y^{2\ast}\\
+        \vdots\\
+        P_c(Y^{k\ast})\\
+        \vdots\\
+        Y^{n\ast}\\
+    \end{bmatrix}   
+    \right)
+\end{equation*}
+
+\end{lemma}
+{\color{red}TODO: CORRECTION PENDING}
+
+\begin{proof}
+The composition
+\begin{align*}
+    f \circ \pi (Y') = f \circ \pi ( P_c (Y'))
+    =
+    f \circ \pi \left(
+    \begin{bmatrix}
+        P_c(Y^{1\ast})\\
+        P_c(Y^{2\ast})\\
+        \vdots\\
+        P_c(Y^{k\ast})\\
+        \vdots\\
+        P_c(Y^{n\ast})\\
+    \end{bmatrix}
+    \right)
+    \\
+    \begin{bmatrix}
+        P_c(Y^{1\ast})\\
+        P_c(Y^{2\ast})\\
+        \vdots\\
+        P_c(Y^{k\ast})\\
+        \vdots\\
+        P_c(Y^{n\ast})\\
+    \end{bmatrix}
+\end{align*}
+\begin{align*}
+    f \circ \pi (Y') = \pmb{\mu}_r (Y_c)
+    =
+    \begin{bmatrix}
+        \mu_r(Y_c^{1\ast})\\
+        \mu_r(Y_c^{2\ast})\\
+        \vdots\\
+        \mu_r(Y_c^{k\ast})\\
+        \vdots\\
+        \mu_r(Y_c^{n\ast})\\
+    \end{bmatrix}
+    \\
+    \begin{bmatrix}
+        P_c(Y^{1\ast})\\
+        P_c(Y^{2\ast})\\
+        \vdots\\
+        P_c(Y^{k\ast})\\
+        \vdots\\
+        P_c(Y^{n\ast})\\
+    \end{bmatrix}
+\end{align*}
+
+\begin{align*}
+    f_c \circ \pi_c (Y') = \pmb{\mu}_r (Y_c)\\
+    f_r \circ \pi_r (Y') = \pmb{\mu}_c (Y_r)\\
+    f_c \circ \pi_c (Y') = \pmb{\mu}_r (Y_c)\\
+    f_r \circ \pi_r (Y') = \pmb{\mu}_c (Y_r)
+\end{align*}
+%Let $Y \in \Y^{n\times m}$ and $P' \in S_m$. 
+%% Since $f$ exists (\cref{lemma:f exists}) and $\pmb{\mu}_r = f \circ \pi$, it follows from \cref{lemma:permutation invariance} that $\pmb{\mu}_r$ is invariant under column permutations. Therefore, $\pmb{\mu}_r(P'(Y)) = \pmb{\mu}_r(Y)$. 
+%Let $k \in \{1, 2, \dots, n\}$.
+%Since $\pmb{\mu}_r$ applies $\mu_r$ in isolation to each row,
+%$\mu_r(P'(Y^{k\ast})=\mu_r(Y^{k\ast})$. Then $\mu_r$ is permutation invariant.
+%
+%Since $\mu_r$ is permutation invariant,
+%\begin{equation}
+%    \pmb{\mu}_r(Y)
+%    = \begin{bmatrix}
+%        \mu_r(Y^{1\ast})\\
+%        \mu_r(Y^{2\ast})\\
+%        \vdots\\
+%        \mu_r(Y^{k\ast})\\
+%        \vdots\\
+%        \mu_r(Y^{n\ast})\\
+%    \end{bmatrix}
+%    = \begin{bmatrix}
+%        \mu_r(Y^{1\ast})\\
+%        \mu_r(Y^{2\ast})\\
+%        \vdots\\
+%        \mu_r(P'(Y^{k\ast}))\\
+%        \vdots\\
+%        \mu_r(Y^{n\ast})\\
+%    \end{bmatrix}
+%\end{equation}
+%showing that $I$ does not change if we permute the elements of a single row of its input.
+\end{proof}
+
+\begin{lemma}
+    \label{lemma:single col permutation}
+    $I$ is invariant under permutations of elements of a single column.
+\end{lemma}
+\begin{proof}
+Assuming \cref{def:proxy} also in the direction of columns, we can apply the same reasoning that leads to \cref{lemma:single row permutation} to conclude that $I$ is also unchanged if we permute the elements of a single column of its input.
+\end{proof}
+
+%\begin{lemma}
+%    $I$ is invariant under vertical permutations
+%\end{lemma}
+%\begin{proof}
+%[$\forall \;\mathbf{y} \in \Y^n,\;\mu_c(P(\mathbf{y}))=\mu_c(\mathbf{y})$]
+%[$P= (Y^{kj}\; Y^{lj})$]
+%\end{proof}
+
+\begin{theorem}[\citet{zaheer_deep_2017}]
+\label{the:deepsets}
+
+% A map $\phi\colon\mathcal{A}\to \mathcal{B}$ between finite-dimension vector spaces $\mathcal{A}$ and $\mathcal{B}$ is permutation-invariant if and only if
+% $\exists\; \rho,\,\mu\ \mid\forall\; A \in \mathcal{A},\;\phi(A) = \rho \left(\sum_{a \in A}\mu(a)\right)$.
+Let $f\colon[0,\; 1]^M \to \mathbb{R}$ be a permutation-invariant continuous function iff it has the representation
+\begin{equation}
+    f\begin{pmatrix}
+        x_1, & x_2, & \dots, & x_M 
+    \end{pmatrix}
+    = \rho\left(\sum_{m=1}^M\mu(x_m)\right)
+\end{equation}
+for some continuous outer and inner functions $\rho \colon \mathbb{R}^{M+1}\to \mathbb{R}$ and $\mu \colon \mathbb{R}\to \mathbb{R}^{M+1}$ respectively. The inner function $\phi$ is independent on the function $f$.
+
+%$\exists\; \rho,\,\mu\ \mid\forall\; A \in \mathcal{A},\;\phi(A) = \rho \left(\sum_{a \in A}\mu(a)\right)$.
+\end{theorem}
+
+\begin{theorem}
+\label{the:oxytrees}
+There exists both a row-wise and a column-wise proxy representation for $I(Y)$ if and only if there exists $\rho$ and $\mu$ functions such that 
+\begin{equation}
+    I(Y)=\rho\left(\sum_{ij}\mu(Y^{ij})\right)
+\end{equation}
+\end{theorem}
+\begin{proof}
+To prove sufficiency, let 
+\begin{align}
+    \mu_r(z_1, \dots, z_m) &= \sum_j \mu(z_j)\\
+    \rho_r(z_1, \dots, z_n) &= \rho\left(\sum_{i}z_i\right)\\
+    \mu_c(z_1, \dots, z_n) &= \sum_i \mu(z_i)\\
+    \rho_c(z_1, \dots, z_m) &= \rho\left(\sum_{j}z_j\right)
+\end{align}
+%
+Given \cref{the:deepsets}, these functions follow the definition of proxies (\cref{def:proxy}).
+
+To prove necessity, let $Y \in \Y^{n \times m}$. Let $(Y^{ij}\; Y^{kl})$ be the permutation of elements $Y^{ij}$ and $Y^{kl}$. $(Y^{ij}\; Y^{kl})$ can be written as a composition of permutations in a single column or row:
+\begin{equation}
+    (Y^{ij}\; Y^{kl}) = (Y^{ij}\; Y^{il}) \circ (Y^{il}\; Y^{jl}) \circ (Y^{ij}\; Y^{il})
+\end{equation}
+\Cref{lemma:single row permutation} implies that $I((Y^{ij}\; Y^{il})(Y)) = I(Y)$ and \cref{lemma:single col permutation} implies that $I((Y^{ij}\; Y^{kj})(Y)) = I(Y)$. Therefore
+\begin{align}
+I(&(Y^{ij}\; Y^{kl})(Y))=\nonumber\\
+&=I((Y^{ij}\; Y^{il}) \circ (Y^{il}\; Y^{jl}) \circ (Y^{ij}\; Y^{il})(Y))\nonumber\\
+&=I((Y^{ij}\; Y^{il}) \circ (Y^{il}\; Y^{jl})(Y))\nonumber\\
+&=I((Y^{ij}\; Y^{il}) (Y))\nonumber\\
+&=I(Y)
+\end{align}
+This is valid for any indices $i,j,k,l$, since they were taken at random.
+Since any permutation of the elements of $Y$ can be written as a composition of permutations $(Y^{ij}\; Y^{kl})$, $I$ is invariant under any permutation of elements in $Y$. From \cref{the:deepsets}, it follows that $I$ can be expressed as
+\begin{equation}
+    I\begin{pmatrix}
+        Y^{11}, & \dots, & Y^{nm}
+    \end{pmatrix}
+    = \rho\left(\sum_{j=1}^m\sum_{i=1}^n\mu(Y^{ij})\right)
+\end{equation}
+for some continuous $\rho \colon \mathbb{R}^{M+1}\to \mathbb{R}$ and $\mu \colon \mathbb{R}\to \mathbb{R}^{M+1}$.
+% Let $\text{vec}(Y)$ be the vectorized $Y$, defined as $\text{vec}(Y)^{m \cdot i + j}:= Y^{ij}$.
+% \begin{multline}
+%     \begin{bmatrix}
+%         Y^{ij} & Y^{il}\\
+%         Y^{kj} & Y^{kl}
+%     \end{bmatrix}
+%     \to
+%     \begin{bmatrix}
+%         Y^{il} & Y^{ij}\\
+%         Y^{kj} & Y^{kl}
+%     \end{bmatrix}
+%     \to
+%     \\
+%     \to
+%     \begin{bmatrix}
+%         Y^{il} & Y^{kl}\\
+%         Y^{kj} & Y^{ij}
+%     \end{bmatrix}
+%     \to
+%     \begin{bmatrix}
+%         Y^{kl} & Y^{il}\\
+%         Y^{kj} & Y^{ij}
+%     \end{bmatrix}
+% \end{multline}
+\end{proof}
+
+\begin{corollary}
+The impurity followed by \citet{pliakos_global_2018} does not allow both row and proxy representations:
+\begin{equation}
+    \label{eq:pbct}
+    I_\text{PBCT}(Y) = \frac{1}{m}\sum_j\left(\frac{1}{n}\sum_i (Y^{ij})^2 - \left(\frac{1}{n}\sum_i (Y^{ij})\right)^2\right)
+\end{equation}
+\end{corollary}
+\begin{proof}
+   From the representation in \cref{the:oxytrees}, we have that $I(Y) = I(\text{vec}(Y))$.
+   Take a matrix $Y'$ for which columns are constant. From \cref{eq:pbct}, $I_\text{PBCT}(Y')=0 \neq I_\text{PBCT}(\text{vec}(Y'))$.
+\end{proof}
+
+%\section{Proof of Oxytrees Compatibility Theorem [Was not included]}
+%\label{sec:proof}
+%
+%% \begin{equation}
+%%     \exists \rho, \phi \; \colon \; I(Y) = \rho \left( \sum_i \phi(Y^i) \right) \;\forall \;Y \iff I = \tilde \rho \left( \sum_{ij} \tilde \phi(Y^{ij})\right)
+%% \end{equation}
+%
+%\begin{definition}
+%    Let $\M(\R)$ be the space of all real matrices of arbitrary dimensions.
+%\end{definition}
+%
+%\begin{definition}
+%    Let $P_\text{rows}(Y)$ and $P_\text{cols}(Y)$ be arbitrary permutations of rows and columns of
+%    %a real matrix $Y$, respectively.
+%    $Y\in \M(\R)$, respectively.
+%\end{definition}
+%%
+%%Let $I(\cdot)$
+%[TODO]
+%
+%\begin{definition}
+%    Finally, let $I\colon \M(\R)\to \R$
+%    be an impurity function satisfying $I(Y) = I(P_\text{rows}(\phi(P_\text{cols}(Y))))$.
+%\end{definition}
+%%
+%
+%An important result from \cite{zaheer_deep_2017}
+%
+%\begin{theorem}
+%    \label{the:permutation invariance}
+%    $f \colon \R^{m} \to \R^n$ is permutation invariant if and only if
+%    $\exists\; g, $ such that $f(\y) = g\left(\sum_i h(\y^i)\right)$.
+%\end{theorem}
+%
+%from \cref{the:permutation invariance} and \cref{def:unstructured}
+%
+%\begin{equation}
+%    I(Y) = f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%from \cref{the:permutation invariance} and \cref{def:permutation invariance}
+%
+%\begin{equation}
+%    I(Y) = f_1 \left( \sum_i \tilde g_1(Y^{i}) \right)
+%\end{equation}
+%
+%% from \cref{the:permutation invariance} and 
+%from \cref{def:unstructured} and \cref{def:permutation invariance}
+%
+%\begin{equation}
+%    I(Y) = I(P(Y^T)^T)
+%\end{equation}
+%
+%\begin{equation}
+%    I(Y) = f_1 \left( \sum_i \tilde g_1(P(Y^{i})) \right)
+%\end{equation}
+%
+%if $\tilde g_1$ commutes with $P$
+%
+%\begin{equation}
+%    I(Y) = f_1 \left( \sum_i P(\tilde g_1(Y^{i})) \right)
+%\end{equation}
+%
+%and $f_1$ must be permutation invariant, so that
+%
+%\begin{equation}
+%    I(Y) = f_2 \left( \sum_j g_2\left( \sum_i \tilde g_1(Y^{i}) \right)\right)
+%\end{equation}
+%
+%and no information is gained (already shown).
+%
+%if $\tilde g_1$ does not commute with $P$, $\tilde g_1$ must be permutation-invariant and
+%
+%\begin{equation}
+%    I(Y) = f_1 \left( \sum_i g_1\left(\sum_j h_1(Y^{ij})\right) \right)
+%\end{equation}
+%
+%for $\tilde g_1$ to commute with $P$, its domains must be compatible. \Cref{def:row-summarizability} defines that $k$ is independent from $m$ and therefore the commutation is not valid in general.
+%
+%\begin{equation}
+%    \exists \rho \;\colon\; 
+%    I(Y) = f_1 \left( \sum_j g_1\left( \sum_i h_1(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%\Cref{the:bgso text} is reformulated into
+%
+%\begin{multline}
+%    \exists f_1, g_1, h_1, f_2, g_2, h_2
+%    \\
+%    \mid
+%    f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%    = f_1 \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%    \;\forall \; Y \in \R^{*\times *}
+%    \\
+%    \iff g_1 \text{ or } g_2 \text{ is distributive.}
+%\end{multline}
+%
+%\begin{multline}
+%    \exists\\
+%    f_1:\mathbb{G}_1^m \to \R \\
+%    f_2:\mathbb{G}_2^n \to \R \\
+%    g_1:\mathbb{H}_1^m \to \mathbb{G}_1 \\
+%    g_2:\mathbb{H}_2^n \to \mathbb{G}_2 \\
+%    h_1:\mathbb{Y} \to \mathbb{H}_1 \\
+%    h_2:\mathbb{Y} \to \mathbb{H}_2
+%    \\
+%    \text{such that } g_2 \text{ is not injective}
+%    % \mathbb{H}_2
+%    \\
+%    \text{and such that}
+%    \\
+%    f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%    = f_1 \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%    \;\forall \; Y \in \R^{*\times *}
+%    \\
+%    \iff g_1 \text{ or } g_2 \text{ is distributive.}
+%\end{multline}
+%
+%% \begin{equation}
+%%     f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%%     = f_1 \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%%     \iff g_2 \text{ is linear}
+%% \end{equation}
+%
+%% \begin{equation}
+%%     g_2 \text{ is linear}
+%%     \implies
+%%     \exists \rho \;\colon\; 
+%%     % \rho \left( \sum_{ij} \phi(Y^{ij}) \right)
+%%     \rho \left( \sum_{ij} \phi(Y^{ij})\right)
+%%     = f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%% \end{equation}
+%
+%% set $\rho = g_2 \circ f_2$ and $h_2 = \phi$.
+%
+%% \begin{equation}
+%%     g_2 \text{ is not linear}
+%%     \implies
+%%     %\nexists \rho \;\colon \;
+%%     % \rho \left( \sum_{ij} \phi(Y^{ij})\right)
+%%     \nexists \; f_1,g_1,h_1 \;\colon \;
+%%     f_1 \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%%     = f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%%     \;\forall \;Y, f_2, g_2, h_2
+%% \end{equation}
+%% 
+%% suppose exists
+%
+%% \begin{equation}
+%%     \exists \; f_1,g_1,h_1 \;\colon \;
+%%     f_1 \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%%     = f_2 \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%%     \;\forall \;Y, f_2, g_2, h_2
+%% \end{equation}
+%
+%% \begin{equation}
+%%     Y = \begin{bmatrix}
+%%         a_1 & a_2 & \cdots & a_n \\
+%%         \vdots & \vdots & \ddots & \vdots \\
+%%         a_1 & a_2 & \cdots & a_n
+%%     \end{bmatrix}
+%% \begin{equation}
+%
+%
+%
+%%\begin{equation}
+%%    Y = \begin{bmatrix}
+%%        P_1(\y) & P_2(\y)& \dots& P_n(\y)
+%%    \end{bmatrix}^T
+%%\end{equation}
+%\begin{equation}
+%    \tilde Y^i = P_i(Y^i)
+%\end{equation}
+%
+%\begin{equation}
+%\end{equation}
+%
+%\begin{equation}
+%    \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right)
+%    = f \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    \sum_i g_2\left( \sum_j h_2(Y^{ij}) \right)
+%    = f \left( \sum_j g_1\left( \sum_i h_1(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%\begin{align}
+%    \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right)
+%    = f \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%    \\
+%    \sum e_m[g_2] \circ \sum_i e_{nm}[h_2]\circ P_j^i(Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j e_{nm}[h_1]\circ P_j^i(Y)
+%    \\
+%    \sum e_m[g_2] \circ \sum_i P_j^i \circ e_{nm}[h_2](Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j P_j^i\circ e_{nm}[h_1](Y)
+%    \\
+%    \sum e_m[g_2] \circ \sum_i P_j^i \circ e_{nm}[h_2](Y)
+%    %= f \circ \sum e_m[g_1] \circ \sum_j e_{nm}[h_1](Y)
+%    = \sum e_m[g_2] \circ \sum_i e_{nm}[h_2](Y)
+%\end{align}
+%
+%\begin{align}
+%    \sum e_m[g_2] \circ \sum_i P_i^j \circ e_{nm}[h_2](Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j P_i^j\circ e_{nm}[h_1](Y)
+%    \\
+%    \sum e_m[g_2] \circ \sum_i e_{nm}[h_2](Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j P_i^j\circ e_{nm}[h_1](Y)
+%    \\
+%    f \circ \sum e_m[g_1] \circ \sum_j e_{nm}[h_1](Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j P_i^j\circ e_{nm}[h_1](Y)
+%\end{align}
+%\begin{align}
+%    \sum e_m[g_2] \circ \sum_i P_i \circ e_{nm}[h_2](Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j P_i\circ e_{nm}[h_1](Y)
+%    \\
+%    \sum e_m[g_2] \circ \sum_i e_{nm}[h_2](Y)
+%    = f \circ \sum e_m[g_1] \circ \sum_j P_i\circ e_{nm}[h_1](Y)
+%    \\
+%    f \circ \sum e_m[g_1] \circ \sum_j e_{nm}[h_1](Y)
+%    = f \circ \sum e_m[g_1] \circ P_i\circ \sum_j e_{nm}[h_1](Y)
+%\end{align}
+%\hrule
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a
+%    \end{bmatrix}
+%\end{equation}
+%
+%\begin{equation}
+%    %\exists \; f_1,g_1,h_1 \;\colon \;
+%    f_1 \left( g_1\left( h_1(a) \right) \right)
+%    = f_2 \left( g_2\left( h_2(a) \right) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a_1 & a_2 & \cdots & a_n
+%    \end{bmatrix}
+%\end{equation}
+%
+%\begin{equation}
+%    %\exists \; f_1,g_1,h_1 \;\colon \;
+%    f_1 \left( g_1\left( \sum_j h_1(a^j) \right) \right)
+%    = f_2 \left( \sum_j g_2\left( h_2(a^{j}) \right) \right)
+%\end{equation}
+%
+%let $f = f_1^{-1} \circ f_2$
+%
+%\begin{equation}
+%     g_1\left( \sum_j h_1(a^j) \right)
+%    = f \left( \sum_j g_2\left( h_2(a^{j}) \right) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%    = \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%    = \sum_i  f \left( \sum_j g_2\left( h_2(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a_1 & a_2 & \cdots & a_n
+%    \end{bmatrix}^T
+%\end{equation}
+%
+%
+%\begin{equation}
+%    f \circ  g_2\left( \sum_i h_2(a^{i}) \right)
+%    = \sum_i  f \circ  g_2\left( h_2(a^{i}) \right)
+%\end{equation}
+%
+%
+%\begin{equation}
+%    f \circ  g_2 = l_2
+%\end{equation}
+%
+%
+%the same in the other direction
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a_1 & a_2 & \cdots & a_n
+%    \end{bmatrix}^T
+%\end{equation}
+%
+%\begin{equation}
+%    %\exists \; f_1,g_1,h_1 \;\colon \;
+%    f_1 \left( \sum_i g_1\left( h_1(a^i) \right) \right)
+%    = f_2 \circ g_2\left( \sum_ih_2(a^{i}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    f^{-1} \left( \sum_i g_1\left( h_1(a^i) \right) \right)
+%    = g_2\left( \sum_ih_2(a^{i}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right)
+%    = f^{-1} \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    \sum_j f^{-1} \left( \sum_i g_1\left( h_1(Y^ij) \right) \right)
+%    = f^{-1} \left( \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a_1 & a_2 & \cdots & a_n
+%    \end{bmatrix}
+%\end{equation}
+%
+%\begin{equation}
+%    \sum_j f^{-1} \circ g_1\left( h_1(Y^ij) \right)
+%    = f^{-1} \circ g_1\left( \sum_j h_1(Y^{ij}) \right)
+%\end{equation}
+%
+%
+%\begin{equation}
+%    f^{-1} \circ  g_1 = l_1
+%\end{equation}
+%
+%
+%
+%\begin{equation}
+%    f \left( \sum_j g_2\left( \sum_i h_2(Y^{ij}) \right) \right)
+%    = \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a & a & \cdots & a \\
+%        \vdots & \vdots & \ddots & \vdots \\
+%        a & a & \cdots & a
+%    \end{bmatrix}
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( m \; g_2\left( n\; h_2(a) \right) \right)
+%    = n\; g_1\left( m \; h_1(a) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    Y = \begin{bmatrix}
+%        a_1 & a_0 & \cdots & a_0 \\
+%        a_0 & a_2 & \cdots & a_0 \\
+%        \vdots & \vdots & \ddots & \vdots \\
+%        a_0 & a_0 & \cdots & a_n
+%    \end{bmatrix}
+%\end{equation}
+%
+%$h_1 (a_0) = 0$
+%
+%\begin{equation}
+%    f \circ g_2\circ h_2
+%    = g_1 \circ h_1
+%\end{equation}
+%
+%\begin{equation}
+%    g_2 =  f^{-1} \circ l_2
+%\end{equation}
+%\begin{equation}
+%    g_1 =  f \circ l_1
+%\end{equation}
+%
+%\begin{equation}
+%    l_2\circ h_2
+%    = g_1 \circ h_1
+%    \implies h_2
+%    = l_2^{-1} \circ g_1 \circ h_1
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_j f^{-1} \circ l_2 \left( \sum_i l_2^{-1} \circ g_1 \circ h_1(Y^{ij}) \right) \right)
+%    = \sum_i g_1\left( \sum_j h_1(Y^{ij}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_j f^{-1} \circ l_2 \left( \sum_i l_2^{-1} \circ f \circ l_1 \circ h_1(Y^{ij}) \right) \right)
+%    = \sum_i f \circ l_1\left( \sum_j h_1(Y^{ij}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_j f^{-1} \left( \sum_i f \circ l_1 \circ h_1(Y^{ij}) \right) \right)
+%    = \sum_i f \left( \sum_j l_1 \circ h_1(Y^{ij}) \right)
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_j f^{-1} \circ f \circ l_1 \circ h_1(a^{j}) \right)
+%    = \sum_i f \circ l_1 \circ h_1(a^{i})
+%\end{equation}
+%
+%\begin{equation}
+%    f \left( \sum_i l_1 \circ h_1(a^{i}) \right)
+%    = \sum_i f \circ l_1 \circ h_1(a^{i})
+%\end{equation}
+%
+%
+%$g_1$, $g_2$, and $f$ are all distributive.
+
+
+
+
+\section{Asymptotic Computational Complexity of Biclustering Decision Trees}
+\label{sec:complexity analysis}
+
+In this appendix, we formally deduce the computational complexity expressions for the training and leaf assignment procedures of bipartite decision trees, comparing our method proposals to the previous algorithms introduced by \citet{pliakos_global_2018}.
+
+\subsection{Training Time Complexity}
+\label{sec:fit complexity analysis}
+
+%TODO: fix n_1 or n notation
+We assume that the numbers of instances in each dimension have the same order of complexity. Formally, let $n_1$ and $n_2$ be the number of rows in $X_1$ and $X_2$, respectively. We assume $n_1 \in \Theta(n_2)$.
+%
+From \ref{alg:find best split dt} alone, the complexity of the split search would be given by the number $|\s|$ of candidate splits times the time it takes to calculate $\Delta I$ for each of the splits: $\Theta(|\s| \;\Delta I(n_1))$. However, we must consider that it is often possible to obtain multiple values of $\Delta I$ for a single feature column $(X_a\T)^f$ much more efficiently using dynamic programming techniques. For instance, we can evaluate all split thresholds between two consecutive values of $(X_1\T)^f$ in $\Theta(\Delta I(n_1))$ time instead of $\Theta (n_1\;\Delta I (n_1))$. This is done by sorting $(X_1\T)^f$, applying the same permutation that sorted $(X_1\T)^f$ to the rows of $Y$, and iteratively obtaining $\tilde Y_1$ and $\tilde Y_2$ (\cref{eq:proxies general}) from which $\Delta I$ (\cref{eq:delta i}) can be calculated.
+% (see Equations \ref{eq:i rows oxytrees} and \ref{eq:i rows pbct}).
+ %
+% 
+Therefore, the final computational complexity depends on the number of features $m$
+%of candidate features chosen to be evaluated (a hyperparameter),
+and not on the total number of split candidates:
+\begin{equation}
+    \Theta(\text{\ref{alg:find best split dt}}) = \Theta(m \Delta I (n_1))
+\end{equation}
+%
+In general, the complexity of $\Delta I$ is linear with respect to the number of elements of $Y$. Thus, for BICTR we have $\Delta I(n_1) \in \Theta (n_1^2)$, which results in
+%
+\begin{align}
+    \label{eq:complexity find split gmo}
+    \text{\ref{alg:find best split gmo}}
+        &\in \Theta(m n_1^2)
+    \text{.}
+\end{align}
+For Oxytrees, however, $\Delta I(n_1) \in \Theta (n_1)$, since we employ lower-dimensional proxies as described in \cref{sec:oxytrees training}. After introducing an $n_1^2$ factor to account for the time spent building the proxies, we have
+\begin{align}
+    \label{eq:complexity find split bgso}
+    \text{\ref{alg:find best split bgso}}
+        &\in \Theta(n_1^2 + m n_1)
+    \text{.}
+\end{align}
+
+To estimate the complexity of the entire tree-building process, we consider the ideal scenario of a balanced decision tree.\footnote{Notice that the balanced scenario \emph{disfavors} our proposed optimization. Specifically, our method improves the complexity of the node-wise impurity calculation, which is dominated by the largest node in each level. A balanced tree results in the fastest decrease in the maximum node size per level.}
+We also consider that the dimension of a split alternates at each level, so that a matrix $Y$ is separated into four equally-sized partitions after two levels. This results in the following recurrence relationship:
+%
+\begin{equation}
+    T(n_1) = 4T\left(\frac{n_1}{2}\right) + \text{\ref{alg:find best split dt}}(n_1, m)
+    \label{eq:recurrence}
+\end{equation}
+%
+$T(n_1)$ is the time to build the tree from an $n_1$ by $n_1$ interaction matrix, and \ref{alg:find best split dt}$(n_1,\; m)$ in this case is the time taken to select a split.
+The algorithm complexity of such recursive functions then follows the master theorem~\cite{cormen_introduction_2022}. The theorem gives the time complexity of a function $T$ obeying the recurrence relation $T(n) = aT(n/b) + F(n)$ and $c=\log_b a$:
+%
+\begin{equation}
+    T(n) \in \begin{cases}
+        \Theta(n^c) & \text{if } F(n) \in O(n^{c-\epsilon})\text{,} \\
+        \Theta(n^c \log^{k+1} n) & \text{if } F(n) \in \Theta(n^c \log^k n)\text{,}\\
+        \Theta(F(n)) & \text{if } F(n) \in \Omega(n^{c+\epsilon})
+            \\&\quad\text{and }F(n)\text{ is regular.}
+    \end{cases}
+    \label{eq:master_theorem}
+\end{equation}
+%
+In \cref{eq:master_theorem}, $\epsilon$ is a positive infinitesimal constant and $k$ is any non-negative integer. For the third case, we say a function $F(n)$ is regular if it satisfies the \emph{regularity condition}: $aF(n/b) \leq qF(n)$, for some constant $q < 1$ and all sufficiently large $n$~\cite{cormen_introduction_2022}.
+% 
+For our tree algorithms, \cref{eq:recurrence} shows that $c=2$ and $F(n)$ represents the split search function.
+Applying \cref{eq:master_theorem} to \cref{eq:complexity find split bgso} and \cref{eq:complexity find split gmo} finally results in \cref{eq:complexity oxytree} and \cref{eq:complexity pbct}, respectively.
+
+
+\subsection{Inference Time Complexity}
+\label{sec:predict complexity analysis}
+Let $|X|$ denote the number of rows in a matrix $X$.
+Let $n_\text{train}$ represent the order of complexity of the number of training samples in both dimensions ($|X_\text{1, train}| \in \Theta(n_\text{train})$ and $|X_\text{2, train}| \in \Theta(n_\text{train})$). Similarly, $|X_\text{1, test}| \in \Theta(n_\text{test})$ and $|X_\text{2, test}| \in \Theta(n_\text{test})$.
+For the traditional procedure of traversing the tree for each dyad individually, the complexity is given by
+\begin{equation}
+    \text{IndividualInference} \in \Theta(n_\text{test}^2\log\, n_\text{train})
+\end{equation}
+in which $n_\text{test}^2$ represents the total number of test dyads and $\log\, n_\text{train}$ represents the depth of the tree.
+For the proposed batch inference procedure (\cref{sec:batch inference}), we first analyse the case in which $n_\text{test} > n_\text{train}$. The total time spent is given by
+\begin{equation}
+    \label{eq:time batch inference}
+    \text{\ref{alg:batch assign leaves}}%(n_\text{train},\; n_\text{test})
+    \in \Theta( T(n_\text{train}) + n_\text{test}^2)
+    \text{,}
+\end{equation}
+%
+in which the term $n_\text{test}^2$ represents the final leaf assignment for each test dyad (\cref{ln:final leaf assignment} of \cref{alg:batch assign leaves}) and $T$ represents the recursive procedure followed until the leaves. Similarly to the rationale behind \cref{eq:recurrence}, we consider a balanced tree in order to obtain
+%
+\begin{equation}
+    T(n_\text{train}) = 4T\left(\frac{n_\text{train}}{2}\right) + n_\text{test}(n_\text{train})
+    \text{.}
+    \label{eq:recurrence predict}
+\end{equation}
+%
+The last term corresponds to the linear process of segregating the instances in one of the dimensions (\cref{ln:x segregation} of \cref{alg:batch assign leaves}), considering that the expected number of test instances in a node will depend on the number of training instances in it.
+Applying \cref{eq:master_theorem}, we see that the $n_\text{test}^2$ term of \cref{eq:time batch inference} dominates in all cases, no matter how $n_\text{test}$ asymptotically depends on $n_\text{train}$. That is,
+\begin{equation}
+    \label{eq:complexity batch inference n test greater}
+    \text{\ref{alg:batch assign leaves}}
+    %(n_\text{train},\; n_\text{test})
+    \in \Omega(n_\text{test}^2)
+\end{equation}
+for $n_\text{test} > n_\text{train}$.
+For the scenario in which $n_\text{test} < n_\text{train}$,
+%
+\begin{multline}
+    \label{eq:time batch inference}
+    \text{\ref{alg:batch assign leaves}}%(n_\text{train},\; n_\text{test}) 
+    \in
+        \\
+        \in \Theta(
+            T(n_\text{test}) 
+            + 2 n_\text{test}^2 (\log\;n_\text{train} - \log\; n_\text{test}))
+        )
+    \text{,}
+\end{multline}
+%
+with
+%
+\begin{equation}
+    T(n_\text{test}) = 4T\left(\frac{n_\text{test}}{2}\right) + n_\text{test}
+    \text{.}
+    \label{eq:recurrence predict 2}
+\end{equation}
+%
+$T$ corresponds again to the recursive procedure of \ref{alg:batch assign leaves}, this time considering that the number of test instances in each node approximately halves with each tree level, until there is a single test instance per node in a given level. The second term of \cref{eq:time batch inference} accounts for the remaining path that each of these instances must still traverse: $n_\text{test}^2$ is the total number of test instances and $(\log\;n^2_\text{train} - \log\; n^2_\text{test})$ is the expected length of the remaining path.
+Since $n_\text{test} < n_\text{train}$, only two cases are investigated with \cref{eq:master_theorem}:
+%
+\begin{multline}
+    \label{eq:complexity batch inforence n test lower}
+    \text{\ref{alg:batch assign leaves}}%(n_\text{train},\; n_\text{test})
+        \in\\
+        \in \begin{cases}
+            \Theta(n_\text{test}^2) & \text{if }n_\text{test} \in \Theta(n_\text{train})\text{,}\\
+            \Theta(n_\text{test}^2 \log\;n_\text{train}) & \text{if }n_\text{test} \in o(n_\text{train})
+            \text{.}
+        \end{cases}
+\end{multline}
+%
+Combining the conclusions of \cref{eq:complexity batch inference n test greater} and \cref{eq:complexity batch inforence n test lower}, we finally arrive at \cref{eq:complexity batch inference}.
+\begin{align}
+    \label{eq:complexity batch inference}
+    %\text{\ref{alg:batch assign leaves}}(n_\text{train},\; n_\text{test})
+    \text{\ref{alg:batch assign leaves}}
+        \in \begin{cases}
+            \Theta(n_\text{test}) \text{ if }n_\text{test} \in \Omega(n_\text{train})\text{,}\\
+            \Theta(n_\text{test} \log(n_\text{train})) \text{ otherwise.}
+        \end{cases}
+\end{align}
+
+\section{Details on Comparison Methods}
+\label{sec:baselines details}
+
+This section presents further details on the baseline methods used in this study, listed in \cref{sec:baselines}.
+
+We included NRLMF \cite{liu_neighborhood_2016,liu_lpi-nrlmf_2017,liu_predicting_2020}, since it is, to the best of our knowledge, the most relevant matrix factorization method that can handle the fully inductive case.
+It does so by regularizing the loss function to preserve neighborhoods between the original feature space and the latent space. Such neighborhoods can then be used to infer latent feature vectors (and thus predictions) for unseen instances.
+NRLMF was successfully applied to several interaction prediction tasks, namely drug-target~\cite{liu_neighborhood_2016}, long non-coding RNA-protein~\cite{liu_lpi-nrlmf_2017}, and microRNA-lncRNA interactions~\cite{liu_predicting_2020}
+%That is, it can predict new interactions without needing to reconstruct itself, making it applicable to all cases evaluated (Section X, EXPLANATION OF CROSS VALIDATION).
+
+Oxytrees[Deep, YR] is included to validate our induction algorithm against BICTR~\cite{pliakos_drug-target_2020}. NRLMF is used by both methods to reconstruct the output space prior to training the forest.
+
+Since logistic regression is a popular leaf model for model trees, we have included a baseline variant of our method using it with the GSO approach, Oxytrees[Logistic]. Furthermore, it also validates the use of RLS-Kron as the leaf model.   
+
+Further, usual deep learning methods~\cite{huang_moltrans_2020,dehghan_tripletmultidti_2023} are not directly comparable since they are designed specifically for an application, e.g., drug-target \cite{liu2024ssldti}, RNA-disease \cite{tian2024mgcnss}. To account for neural networks, we included a multi-layer perceptron trained using the GSO approach as a baseline. 
+
+As investigated in a previous work of ours~\cite{ilidio_fast_2024}, the semi-supervised variant of PBCT presents higher computational complexity, nonetheless it does not consistently lead to improvement in terms of performance \cite{ilidio_fast_2024}. Thus, we decide not to include it.       
+
+The MLP architecture was selected between 10 layers of 100 neurons, 5 layers of 100 neurons, $\begin{bmatrix} 200 & 100 & 100 & 100 & 50 \end{bmatrix}$ and $\begin{bmatrix} 1024 & 512 & 256 & 128 & 64 & 32 \end{bmatrix}$, each number representing the size of each layer. The remaining hyperparameters were left as the default values of the Scikit-Learn package~\cite{pedregosa_scikit-learn_2011}, version 1.3.0.
+
+Following the original WkNNIR study~\cite{liu_drug-target_2022}, the values evaluated for the number of neighbors used by WkNNIR were $\{1,2,3,5,7,9\}$, and for the learning rate were $\{0.1,0.2,\cdots,1\}$.
+
+The Ridge regularization parameter of RLS-avg, RLS-Kron and BLMNII, was set to 1.
+%
+RLS-Kron, RLS-avg and BLMNII use a linear combination of a Gaussian network kernel (calculated from $Y$) with the original similarity kernel before training the models. We evaluated the values $\{0, 0.1, 0.25, 0.5, 0.75, 0.9, 1\}$ for the weight of this combination. The width of the Gaussian kernels was set to $1$, following the original authors.
+%
+The network kernel was not utilized for the RLS-Kron models in the leaves of Oxytrees.
+
+% The Ridge regularization parameter of all linear models, including RLS-Kron, was set to 1, and no network-based kernel was used for .
+
+NRLMF used a factor of $c=5$ to prioritize positive instances, as originally~\cite{liu_neighborhood_2016}. A maximum of 100 iterations with a minimum relative improvement of $10^{-5}$ for the loss function was performed. The number of neighbors was chosen between 3, 5 and 10, and the number of latent components was either 50 or 100. All remaining hyperparameters were randomly sampled from a log-uniform distribution between $2^{-4}$ and $2$. Due to the large hyperparameter space, 100 random combinations of hyperparameters were evaluated per outer fold for NRLMF, in contrast to the exhaustive search used with the other baselines. When used in combination with the forests, the hyperparameters were evaluated on the basis of the output of NRLMF, and not the final output of the forest. Furthermore, when combining NRLMF with forests, the original positive annotations are recovered, and only the NRLMF predictions for the negative (missing) annotations are kept~\cite{pliakos_drug-target_2020}.
+
+All biclustering forests (BICTR and Oxytrees) utilized Extremely Randomized~\cite{geurts_extremely_2006} versions of the biclustering trees. That is, one random split candidate was selected for each candidate feature in each node. No bootstrapping of samples was performed, and all forests utilized 200 trees.
+Following \cite{pliakos_network_2019,pliakos_drug-target_2020}, Oxytrees[Deep, YR] and BICTR had their trees grown until their maximum depth (reaching leaves with a single type of annotation) and evaluated $\lceil \sqrt{m}\rceil$ feature candidates in each node, from the $m$ total features. The remaining Oxytrees used minimum leaf dimensions of 5 by 5 as the only stopping criterion, and evaluated all $m$ features.
+
+WkNNIR~\cite{liu_drug-target_2022} and BICTR~\cite{pliakos_global_2018} propose slight variations for the semi-inductive settings. We did not use them, since we primarily focus on inductive models.
+
+
+
+\section{Additional Results}
+\label{sec:additional results}
+\FloatBarrier
+%This section gathers additional figures and tables.
+\begin{figure*}[tbh]
+    \centering
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT/all_datasets/critical_difference_diagrams/AUPRC (Inductive).pdf}
+        \caption{Positives masking percentage = 0\% (Inductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_25/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_25/all_datasets/critical_difference_diagrams/AUPRC (Inductive).pdf}
+        \caption{Positives masking percentage = 25\% (Inductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_50/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_50/all_datasets/critical_difference_diagrams/AUPRC (Inductive).pdf}
+        \caption{Positives masking percentage = 50\% (Inductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_75/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_75/all_datasets/critical_difference_diagrams/AUPRC (Inductive).pdf}
+        \caption{Positives masking percentage = 75\% (Inductive setting)}
+    \end{subfigure}   
+
+    \caption{Comparisons of AUROC (left) and AUPRC (right) of the proposed Oxytrees against previous methods for inductive bipartite learning. The analysis is conducted across four different positive interaction masking percentages.}
+    \label{fig:literature inductive}
+\end{figure*}
+
+
+\begin{figure*}[tbh]
+    \centering
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT/all_datasets/critical_difference_diagrams/AUROC (Semi-inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT/all_datasets/critical_difference_diagrams/AUPRC (Semi-inductive).pdf}
+        \caption{Positives masking percentage = 0\% (Semi-inductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_25/all_datasets/critical_difference_diagrams/AUROC (Semi-inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_25/all_datasets/critical_difference_diagrams/AUPRC (Semi-inductive).pdf}
+        \caption{Positives masking percentage = 25\% (Semi-inductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_50/all_datasets/critical_difference_diagrams/AUROC (Semi-inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_50/all_datasets/critical_difference_diagrams/AUPRC (Semi-inductive).pdf}
+        \caption{Positives masking percentage = 50\% (Semi-inductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_75/all_datasets/critical_difference_diagrams/AUROC (Semi-inductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_75/all_datasets/critical_difference_diagrams/AUPRC (Semi-inductive).pdf}
+        \caption{Positives masking percentage = 75\% (Semi-inductive setting)}
+    \end{subfigure}   
+
+    \caption{Comparisons of AUROC (left) and AUPRC (right) of the proposed Oxytrees against previous methods for semi-inductive bipartite learning. The analysis is conducted across four different positive interaction masking percentages.}
+    \label{fig:literature semi-inductive}
+\end{figure*}
+
+\begin{figure*}[tbh]
+    \centering
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_25/all_datasets/critical_difference_diagrams/AUROC (Transductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_25/all_datasets/critical_difference_diagrams/AUPRC (Transductive).pdf}
+        \caption{Positives masking percentage = 25\% (Transductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_50/all_datasets/critical_difference_diagrams/AUROC (Transductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_50/all_datasets/critical_difference_diagrams/AUPRC (Transductive).pdf}
+        \caption{Positives masking percentage = 50\% (Transductive setting)}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_75/all_datasets/critical_difference_diagrams/AUROC (Transductive).pdf}
+        \hfill
+        \includegraphics[width=.49\textwidth]{results/literature_methods/TT_75/all_datasets/critical_difference_diagrams/AUPRC (Transductive).pdf}
+        \caption{Positives masking percentage = 75\% (Transductive setting)}
+    \end{subfigure}   
+
+    \caption{Comparisons of AUROC (left) and AUPRC (right) of the proposed Oxytrees against previous methods for transductive bipartite learning. The analysis is conducted across different positive interaction masking percentages.}
+    \label{fig:literature transductive}
+\end{figure*}
+
+
+
+% \begin{figure*}
+%     \begin{subfigure}{.49\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{results/y_reconstruction/TT/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         %\includegraphics[width=\textwidth]{results/y_reconstruction/TT/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         \caption{Positives masking percentage = 0\%}
+%     \end{subfigure}
+%     \begin{subfigure}{.49\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{results/y_reconstruction/TT_25/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         %\includegraphics[width=\textwidth]{results/y_reconstruction/TT_25/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         \caption{Positives masking percentage = 25\%}
+%     \end{subfigure}
+%     
+%     \begin{subfigure}{.49\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{results/y_reconstruction/TT_50/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         %\includegraphics[width=\textwidth]{results/y_reconstruction/TT_50/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         \caption{Positives masking percentage = 50\%}
+%     \end{subfigure}
+%     \begin{subfigure}{.49\textwidth}
+%         \centering
+%         \includegraphics[width=\textwidth]{results/y_reconstruction/TT_75/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         %\includegraphics[width=\textwidth]{results/y_reconstruction/TT_75/all_datasets/critical_difference_diagrams/AUROC (Inductive).pdf}
+%         \caption{Positives masking percentage = 75\%}
+%     \end{subfigure}   
+% 
+%     \caption{AUROC comparison in the inductive case, of Oxytrees with and without a leaf model, as well as using and not using matrix completion with NRLMF. See \cref{sec:ablation}.}
+%     \label{fig:ablation inductive auroc}
+% \end{figure*}
+
+\onecolumn
+
+\begin{table*}[tb]
+    \tiny
+    %\label{tab:auprc}
+    \centering
+    %\onecolumn
+    \input{figures/results/latex_tables/0/AUPRC (Inductive)}
+    \label{tab:auprc}
+\end{table*}
+
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUROC (Inductive)}
+    \label{tab:auroc}
+\end{table*}
+
+
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUPRC (Transductive)}
+    \label{tab:auprc transductive}
+\end{table*}
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUROC (Transductive)}
+    \label{tab:auroc transductive}
+\end{table*}
+
+
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUPRC (LT)}
+    \label{tab:auprc lt}
+\end{table*}
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUROC (LT)}
+    \label{tab:auroc lt}
+\end{table*}
+
+
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUPRC (TL)}
+    \label{tab:auprc tl}
+\end{table*}
+\begin{table*}[tb]
+    \tiny
+    \centering
+    \input{figures/results/latex_tables/0/AUROC (TL)}
+    \label{tab:auroc tl}
+\end{table*}
+
+\begin{figure*}
+    \centering
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.47\linewidth]{figures/results/latex_tables/0/AUROC (Inductive).pdf}
+        %\caption{Training time as a function of the number of instances.}
+        %\label{fig:pmp auroc inductive}
+        \hfill
+        \includegraphics[width=.47\linewidth]{figures/results/latex_tables/0/AUPRC (Inductive).pdf}
+        %\caption{Inference time as a function of the number of instances.}
+        %\label{fig:pmp auprc inductive}
+        \caption{Performance drop in the \emph{inductive} case, as a function of PMP.}
+    \end{subfigure}
+    
+    \begin{subfigure}{\textwidth}
+        \includegraphics[width=.47\linewidth]{figures/results/latex_tables/0/AUROC (Semi-inductive).pdf}
+        %\caption{Training time as a function of the number of instances.}
+        %\label{fig:pmp auroc inductive}
+        \hfill
+        \includegraphics[width=.47\linewidth]{figures/results/latex_tables/0/AUPRC (Semi-inductive).pdf}
+        %\caption{Inference time as a function of the number of instances.}
+        %\label{fig:pmp auprc inductive}
+        \caption{Performance drop in the \emph{semi-inductive} case, as a function of PMP.}
+    \end{subfigure}
+    \caption{AUROC (left) and AUPRC (right) for different positive masking percentages (PMP) divided by the corresponding value in the PMP = 0\% setting. The relative values are obtained for each fold. They are averaged across folds of each dataset and then across datasets, for all datasets in \cref{tab:datasets} and all the compared models of \cref{sec:baselines}. For the semi-inductive case, we considered scores on both the TL and LT sets (\cref{fig:train test split}) when averaging within each dataset.}
+    \label{fig:pmp drop}
+\end{figure*}
+
+\begin{figure*}[tbp]
+    \includegraphics[width=.31\textwidth]{figures/results/empirical_complexity_plots/empirical_complexity_predict.pdf}
+    \hfill
+    \includegraphics[width=.31\textwidth]{figures/results/empirical_complexity_plots/fit_time_Oxytree_BICTR.pdf}
+    \hfill
+    \includegraphics[width=.31\textwidth]{figures/results/empirical_complexity_plots/predict_time_Oxytree_BICTR.pdf}
+    \caption{Extra results for the empirical complexity analysis.
+    Single trees were applied to artificial datasets of different dimensions (\cref{sec:empirical complexity}).
+    On the left, prediction times for the same trees used in \cref{fig:empirical complexity} (left).
+    We used the last 10\% of the points of each curve to approximate the asymptotic complexity as $\Theta (n^\alpha)$. $\alpha$ ($\pm$ standard dev.) is estimated as
+    %the slope in the log-log space.
+    the slope of the linear regression in the log-log space.
+    In the middle, training times of Oxytrees against BICTR and corresponding least squares linear regression (using the last 10\% of the points in \cref{fig:empirical complexity}).
+    On the right, prediction times of Oxytrees against BICTR and corresponding least squares linear regression (using the last 10\% of the points of the figure in the left).
+    The last points are used to approximate the asymptotic regime as well as possible.
+    %BICTR leaf assignment terminated earlier due to memory limitations.
+    }
+ 
+    \label{fig:complexity extra}
+\end{figure*}
+
+\begin{figure*}
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUPRC_00.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUPRC_25.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUPRC_50.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUPRC_75.pdf}
+    
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUPRC_00.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUPRC_25.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUPRC_50.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUPRC_75.pdf}
+    
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Transductive_AUPRC_25.pdf}
+    \hspace{0.001\linewidth}
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Transductive_AUPRC_50.pdf}
+    \hspace{0.001\linewidth}
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Transductive_AUPRC_75.pdf}
+    
+    \caption{
+    AUPRC comparison of ensembles of Oxytrees using different components (\cref{tab:ablation}). To compare across datasets, the scores are divided by the score of the main model (Oxytrees). Each point represents a cross-validation fold, and the mean value is presented in the white boxes.
+    Asterisks indicate significance in comparison to Oxytrees, averaging folds for each dataset ($\ast:p<0.05$, $\ast\ast:p<0.01$, $\ast\ast\ast:p<0.001$, Wilcoxon signed-rank).
+    AUROC results are presented in \cref{fig:ablation extra auroc}.
+    }
+    \label{fig:ablation extra}
+\end{figure*}
+
+\begin{figure*}
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUROC_00.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUROC_25.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUROC_50.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Inductive_AUROC_75.pdf}
+    
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUROC_00.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUROC_25.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUROC_50.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Semi-inductive_AUROC_75.pdf}
+    
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Transductive_AUROC_25.pdf}
+    \hspace{0.001\linewidth}
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Transductive_AUROC_50.pdf}
+    \hspace{0.001\linewidth}
+    \includegraphics[width=0.245\linewidth]{figures/results/ablation_relative/Transductive_AUROC_75.pdf}
+    
+    \caption{
+    AUROC comparison of ensembles of Oxytrees using different components (\cref{tab:ablation}). To compare across datasets, the scores are divided by the score of the main model (Oxytrees). Each point represents a cross-validation fold, and the mean value is presented in the white boxes.
+    Asterisks indicate significance in comparison to Oxytrees, averaging folds for each dataset ($\ast:p<0.05$, $\ast\ast:p<0.01$, $\ast\ast\ast:p<0.001$, Wilcoxon signed-rank).
+    }
+    \label{fig:ablation extra auroc}
+\end{figure*}
+
+\begin{figure*}
+    %\includegraphics[width=.48\linewidth]{figures/results/number_of_trees/Inductive_AUROC_0_BICTR_Oxytrees.pdf}
+    %\hfill
+    %\includegraphics[width=.495\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_0_BICTR_Oxytrees.pdf}
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_0_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_25_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_50_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_75_BICTR_Oxytrees.pdf}
+
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_0_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_25_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_50_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_75_BICTR_Oxytrees.pdf}
+
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_0_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_25_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_50_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_75_BICTR_Oxytrees.pdf}
+   
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_0_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_25_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_50_BICTR_Oxytrees.pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_75_BICTR_Oxytrees.pdf}
+
+%    \hfill
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_0_BICTR_Oxytrees.pdf}
+%    \hspace{0.001\linewidth}
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_25_BICTR_Oxytrees.pdf}
+%    \hspace{0.001\linewidth}
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_50_BICTR_Oxytrees.pdf}
+%    \hspace{0.001\linewidth}
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_75_BICTR_Oxytrees.pdf}
+ 
+    \caption{Comparison between Oxytrees and BICTR in terms of the expected number of trees to achieve 98\% of the score of 200 trees. Each fold is plotted, with different styles for each dataset.
+    This quantity is estimated from the piece-wise linear interpolation in a plot of the score metric versus number of trees.
+    LT and TL points are plotted separately in the semi-inductive plots (hence double the number or points).
+    Comparisons of Oxytrees against Oxytrees without the leaf model (Oxytrees[Mean] in \cref{tab:ablation}) are shown in \cref{fig:number of trees no leaf model}
+    }
+%   The p-value for the comparison
+%   (Wilcoxon signed-rank)
+%   is displayed in the legend, based on the averaged scores per dataset.
+    \label{fig:number of trees extra}
+\end{figure*}
+
+\begin{figure*}
+    %\includegraphics[width=.48\linewidth]{figures/results/number_of_trees/Inductive_AUROC_0_BICTR_Oxytrees.pdf}
+    %\hfill
+    %\includegraphics[width=.495\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_0_BICTR_Oxytrees.pdf}
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_0_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_25_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_50_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUPRC_75_Oxytrees_Oxytrees[no leaf model].pdf}
+
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_0_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_25_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_50_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUPRC_75_Oxytrees_Oxytrees[no leaf model].pdf}
+
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_0_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_25_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_50_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Inductive_AUROC_75_Oxytrees_Oxytrees[no leaf model].pdf}
+   
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_0_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_25_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_50_Oxytrees_Oxytrees[no leaf model].pdf}
+    \hfill
+    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Semi-inductive_AUROC_75_Oxytrees_Oxytrees[no leaf model].pdf}
+
+%    \hfill
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_0_BICTR_Oxytrees.pdf}
+%    \hspace{0.001\linewidth}
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_25_BICTR_Oxytrees.pdf}
+%    \hspace{0.001\linewidth}
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_50_BICTR_Oxytrees.pdf}
+%    \hspace{0.001\linewidth}
+%    \includegraphics[width=0.245\linewidth]{figures/results/number_of_trees/Transductive_AUPRC_75_BICTR_Oxytrees.pdf}
+ 
+    \caption{
+    Comparison between Oxytrees and Oxytrees without the leaf model (Oxytrees[no leaf model] is Oxytrees[Mean] in \cref{tab:ablation})
+    in terms of the expected number of trees to achieve 98\% of the score of 200 trees. This quantity is estimated from the piece-wise linear interpolation in a plot of the score metric versus number of trees.
+    Each fold is plotted, with different styles for each dataset. LT and TL points are plotted separately in the semi-inductive plots (hence double the number or points).}
+    \label{fig:number of trees no leaf model}
+\end{figure*}
+
+\FloatBarrier
+
+
+
+\end{appendices}
