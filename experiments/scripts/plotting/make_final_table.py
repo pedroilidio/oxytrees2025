@@ -73,7 +73,7 @@ def plot_masking_vs_score(data: pd.DataFrame, outdir: Path):
     reldata = reldata.sort_index(level=["validation_setting", "estimator"])
 
     for metric, g in reldata.groupby(level="metric", sort=False):
-        plt.figure(figsize=(4, 4))
+        plt.figure(figsize=(COLUMN_WIDTH, COLUMN_WIDTH))
         sns.lineplot(
             data=g,
             x="validation_setting",

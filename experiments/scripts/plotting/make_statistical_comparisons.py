@@ -23,7 +23,8 @@ from critical_difference_diagrams import (
     _find_maximal_cliques,
 )
 
-BASEDIR = Path(__file__).resolve().parents[2]
+DIR_BASE = Path(__file__).resolve().parents[2]
+PATH_LOCAL_RCPARAMS = DIR_BASE / "experiments/config/rc_params.yaml"
 
 
 METRIC_FORMATTING = {
@@ -54,39 +55,6 @@ def combine_LT_TL(original_data):
     data.columns = ("__".join(c) for c in data.columns)
 
     return data.reset_index()
-
-
-def set_rc_params():
-    plt.rcParams.update(
-        {
-            "text.usetex": True,
-            "font.family": "serif",
-            "font.weight": "bold",
-            "font.serif": ["Times New Roman"],
-            # Set font type to avoid Type 3 fonts
-            "pdf.fonttype": 42,
-            # "font.size": 10,
-            # "axes.labelsize": 10,
-            # "axes.titlesize": 10,
-            # "xtick.labelsize": 10,
-            # "ytick.labelsize": 10,
-            # "legend.fontsize": 10,
-            # "legend.title_fontsize": 10,
-            # "axes.linewidth": 1.5,
-            # "lines.linewidth": 1.5,
-            # "lines.markersize": 5,
-            # "xtick.major.width": 1.5,
-            # "ytick.major.width": 1.5,
-            # "xtick.minor.width": 1.5,
-            # "ytick.minor.width": 1.5,
-            # "xtick.major.size": 5,
-            # "ytick.major.size": 5,
-            # "xtick.minor.size": 3,
-            # "ytick.minor.size": 3,
-            # "legend.frameon": False,
-            # "legend.loc": "upper right",
-        }
-    )
 
 
 def set_axes_size(w, h, ax=None):
@@ -373,7 +341,7 @@ def make_visualizations(
     formatted_metric_name = METRIC_FORMATTING.get(metric, metric)
 
     # Header height is approx. 3 characters
-    plt.figure(figsize=(3, .15 * (3 + n_groups)))
+    plt.figure(figsize=(COLUMN_WIDTH, .15 * (3 + n_groups)))
     hue_dict = (
         data[[estimator_col, hue_col]]
         .drop_duplicates()
@@ -937,7 +905,7 @@ def plot_radar(data, out, metric):
     "--out-crosstab",
     type=click.Path(dir_okay=False, path_type=Path),
     help="Path to save a table counting runs per dataset and estimator.",
-    default=BASEDIR / "results/run_counts.png",
+    default=DIR_BASE / "results/run_counts.png",
 )
 @click.option(
     "--renaming",
@@ -951,7 +919,9 @@ def plot_radar(data, out, metric):
 )
 def main(config, results_table, out_crosstab, renaming, all_datasets_only):
     """Generate statistical comparisons between run results."""
-    set_rc_params()
+
+    # Set matplotlib rcParams for consistent plotting style
+    plt.rcParams.update(yaml.safe_load(PATH_LOCAL_RCPARAMS.read_text()))
 
     data = pd.concat(map(pd.read_csv, results_table))
     data = data.sort_values("start_time")
