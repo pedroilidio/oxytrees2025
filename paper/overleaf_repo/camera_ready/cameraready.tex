@@ -139,8 +139,9 @@ Finally, we provide an intuitive Python API to access all datasets, methods and 
 \end{abstract}
 
 \begin{links}
-\link{Code}{https://github.com/pedroilidio/oxytrees2025}
-\link{Python package}{https://github.com/pedroilidio/bipartite_learn}
+\link{Code}{https://github.com/pedroilidio/oxytrees2026}
+\link{Python package}{https://bipartite-learn.readthedocs.io}
+\link{Extended version}{https://arxiv.org/abs/2511.12713}
 \end{links}
 
 
@@ -199,7 +200,7 @@ We consider a single output, so $\Y \subseteq \R$ and an interaction matrix $Y$ 
 We specifically focus on binary classification and therefore $\Y=\{0,\;1\}$. Furthermore, we assume the PU setting~\cite{bekker2020learning}, meaning that positive annotations are deemed confirmed, but negative annotations can be either ground-truth negatives or unannotated positives.
 
 
-\section{Related work}
+\section{Related Work}
 \label{sec:related work}
 
 A handful of terms have been used in the literature to describe similar learning problems,
@@ -748,9 +749,7 @@ Using YR while enforcing minimum leaf dimensions of 5 by 5 was the worst overall
 \end{table}
 
 \begin{figure}
-    \includegraphics[width=0.49\linewidth]{ablation_Inductive_AUPRC_00.pdf}
-    \hfill
-    \includegraphics[width=0.49\linewidth]{ablation_Inductive_AUPRC_50.pdf}
+    \includegraphics{ablation.pdf}
     \caption{
     Performance comparison of ensembles of Oxytrees using different components (\cref{tab:ablation}). To compare across datasets, the scores are divided by the score of the main model (Oxytrees). Each point represents a cross-validation fold, and the mean value is presented in the white boxes.
     Asterisks indicate significance in comparison to Oxytrees ($p<0.05$, Wilcoxon signed-rank), averaging folds for each dataset.
@@ -771,12 +770,9 @@ To measure inference times, we built a completely random tree for each $n_1$ and
 The results are shown in \cref{fig:empirical complexity}. The estimated complexities follow the theoretical expectations of \cref{sec:oxytrees training} (with $m = n_1$) and \cref{sec:batch inference}.
 Plotting times of Oxytrees against BICTR (fig. F5), we measured that Oxytrees trained $35.49 \pm 0.75$ times faster and predicted $9.98 \pm 0.84$ times faster ($p < 4 \cdot 10^{-5}$, Wald).
 
-\begin{figure}[tbh]
+\begin{figure}[t]
     \centering
-        
-    \includegraphics[width=0.49\linewidth]{empirical_complexity_fit.pdf}
-    \includegraphics[width=0.49\linewidth]{empirical_complexity_leaf_assign.pdf}
-    
+    \includegraphics{complexity.pdf}
     \caption{Empirical complexity analysis. Single trees were applied to artificial datasets of different dimensions (\cref{sec:empirical complexity}).
     We used the last 10\% of the points of each curve to approximate the asymptotic complexity as $\Theta (n^\alpha)$. $\alpha$ ($\pm$ standard dev.) is estimated as
     the slope of the linear regression in the log-log space.
@@ -796,10 +792,9 @@ Similar results were found for the other settings
 The performance of forests without leaf models drops when the leaves are enforced to be larger, especially for leaf dimensions larger than 20 by 20. On the other hand, Oxytrees with leaf models keep their performance stable even with larger leaves, with a slight score increase up until 20 by 20 leaves.
 Therefore, adding RLS-Kron as leaf models enables shallower trees.
 
-\begin{figure}[tbh]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{leaf_size_Inductive_AUPRC_00.pdf}
-    \includegraphics[width=\linewidth]{leaf_size_Inductive_AUROC_00.pdf}
+    \includegraphics{leaf_size.pdf}
     \caption{
     Performance of biclustering forests as a function of minimum leaf dimensions, relative to the initial performance with 2 by 2 leaves.
     Values in the $x$ axis represent the minimum number of instances in each dimension.
@@ -812,23 +807,22 @@ Therefore, adding RLS-Kron as leaf models enables shallower trees.
 \subsection{Dependency on the Number of Trees}
 \label{sec:number of trees}
 
-We perform a bootstrapping procedure to evaluate how the performance of each biclustering forest varies with the number of trees.
-For each forest, we started by building a total of 200 trees.
-Then, we progressively added the outputs of each tree, calculating the resulting score in each step. We repeated the summing 50 times, with a random tree order each time.
-From the plot of scores vs. number of trees, we used linear interpolation to estimate the number of trees required to achieve 98\% of the final score of 200 trees. The measurements for PMP 0\% are reported in \cref{fig:number of trees}.
-Oxytrees required significantly fewer trees ($42\%\pm 3\%$) relative to BICTR ($p < 2 \cdot 10^{-4}$, Wilcoxon).
-
-\begin{figure}[ht!]
-    \includegraphics[width=.48\linewidth]{number_of_trees_Inductive_AUROC_0_BICTR_Oxytrees.pdf}
-    \hfill
-    \includegraphics[width=.495\linewidth]{number_of_trees_Inductive_AUPRC_0_BICTR_Oxytrees.pdf}
-    
+\begin{figure}[t]
+    \centering
+    \includegraphics{number_of_trees.pdf}
     \caption{Comparison between Oxytrees and BICTR in terms of the expected number of trees to achieve 98\% of the score of 200 trees. Each fold is plotted, with different styles for each dataset.
      Remaining results can be found in
      fig. F8.
     }
     \label{fig:number of trees}
 \end{figure}
+
+We perform a bootstrapping procedure to evaluate how the performance of each biclustering forest varies with the number of trees.
+For each forest, we started by building a total of 200 trees.
+Then, we progressively added the outputs of each tree, calculating the resulting score in each step. We repeated the summing 50 times, with a random tree order each time.
+From the plot of scores vs. number of trees, we used linear interpolation to estimate the number of trees required to achieve 98\% of the final score of 200 trees. The measurements for PMP 0\% are reported in \cref{fig:number of trees}.
+Oxytrees required significantly fewer trees ($42\%\pm 3\%$) relative to BICTR ($p < 2 \cdot 10^{-4}$, Wilcoxon).
+
 
 
 
@@ -842,12 +836,12 @@ The model comparisons were mostly consistent across different masking percentage
 We provide datasets and efficient implementations of the algorithms compared in this study, in an accessible API based on Scikit-Learn.
 As future work, we would like to explore the potential of Oxytrees for regressive bipartite learning, such as drug-target affinity prediction, and compare our results with deep learning techniques that work on the raw unstructured data (such as protein sequences and molecular structures).
 
-\FloatBarrier
-
 \section*{Acknowledgements}
 The work received funding from the Flemish Government (AI Research Program), VOEWIAI02.
 The authors thank FWO, 11A7U26N, 1235924N and 1S38025N.
 R.C. thanks the Brazilian National Council for Scientific and Technological Development (CNPq), grant number 300934/2025-4, and the São Paulo Research Foundation (FAPESP), Brasil, Process Number \#2022/02981-8.
+
+\FloatBarrier
 
 \bibliography{bibliography}
 \vfill
